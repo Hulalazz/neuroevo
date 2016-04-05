@@ -1,0 +1,6 @@
+.rspec
+*.csv
+*.dot
+*.pdf
+profile*
+img/
