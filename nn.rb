@@ -1,4 +1,5 @@
 require 'nmatrix'
+require_relative 'monkey'
 
 # TODO: separate activation functions in class?
 
@@ -38,7 +39,7 @@ class NN
     @state.each do |m| # state has only single-row matrices
       # reset all to zero
       m[0,0..-1] = 0
-      # bias to all but output
+      # add bias to all but output
       m[0,-1] = 1 unless m.object_id == @state.last.object_id
     end
   end
@@ -51,7 +52,7 @@ class NN
 
   ## Weight utilities
 
-  # TODO: #deep_reset will be needed when playing with structure modification
+  # method #deep_reset will be needed when playing with structure modification
   def deep_reset
     # reset memoization
     [:layer_row_sizes, :layer_col_sizes, :nlayers, :layer_shapes,
@@ -122,7 +123,7 @@ class NN
   end
 
   def out
-    state.last.to_flat_a # activation of output layer (NMatrix)
+    state.last.to_flat_a # activation of output layer (as 1-dim Array)
   end
 
   # define #activate_layer in child class
@@ -151,7 +152,7 @@ class NN
   end
 
   def self.lecun_hyperbolic
-    # http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf Section 4.4
+    # http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf -- Section 4.4
     lambda { |x| 1.7159 * Math.tanh(2.0*x/3.0) + 1e-3*x }
   end
 
@@ -160,7 +161,7 @@ class NN
 
   [:layer_row_sizes, :activate_layer].each do |sym|
     define_method sym do |*args|
-      raise NotImplementedError, "Method ##{sym} needs to be implemented in child class!"
+      raise NotImplementedError, "Implement ##{sym} in child class!"
     end
   end
 end
@@ -193,21 +194,14 @@ class RNN < NN
     end
   end
 
-  def activate_layer i
-    act_fn.call( state[i].dot layers[i] )
-  end
-
   def activate_layer nlay #_layer
-    # NOTE WELL: current layer corresponds to state current+1!
-    # so previous layer has index nlay, current layer has index nlay+1
-    previous = nlay
-    current = nlay + 1
-    # first, need to copy the level's last activation in the previous state
-    # ranges in NMatrix#[] not reliable! gotta loop :(
-    # @state[previous][0, previous_rec_pos] = state[current][0, current_acts_pos]
+    # NOTE: current layer index corresponds to index of next state!
+    previous = nlay     # index of previous layer (inputs)
+    current = nlay + 1  # index of current layer (outputs)
+    # Copy the level's last-time activation to the input (previous state)
+    # NOTE: ranges in NMatrix#[] not reliable! gotta loop :(
     nneurs(current).times do |i| # for each activations to copy
-      # the previous state corresponding recursion equals to the current
-      # state activation (last-timestep, since `act_fn` is called later)
+      # Copy output from last-time activation to recurrency in previous state
       @state[previous][0, nneurs(previous) + i] = state[current][0, i]
     end
     act_fn.call( state[previous].dot layers[nlay] )

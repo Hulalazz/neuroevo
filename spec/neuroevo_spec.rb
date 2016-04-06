@@ -30,7 +30,7 @@ describe "Neuroevolution" do
         nes = XNES.new net.nweights, fit, :min
 
         it "the fitness is correct",:focus do
-          solution_weights = [ [[1,2],[1,2],[0,0]],  [[-1],[8.5],[0]] ]
+          solution_weights = [ [[1,2],[1,2],[0,0]],  [[-1*1000],[8.5*1000],[0]] ]
           res = fit.([solution_weights.flatten]).first
           assert res.approximates? 0
         end

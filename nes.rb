@@ -1,20 +1,22 @@
 require 'nmatrix'
 require 'distribution' # If you have GSL installed and want to speed things up: gem install rb-gsl
+require_relative 'monkey'
 
 # NOTE: objective function should take whole population as input.
 # This separates algorithm parallelization from evaluation parallelization.
-# TODO: make it accept a single-ind objective function (add param key?)
-
-require File.expand_path(File.dirname(__FILE__) + '/monkey')
-
+#   TODO: make it work anyway if a single-ind objective function
+#   is provided (automatic check? add param key to init?)
 
 class NES
   # Translated from Giuse's NES Mathematica library
   attr_reader :ndims, :mu, :log_sigma, :sigma, :dist, :opt_type, :obj_fn, :id
 
   def initialize ndims, obj_fn, opt_type
-    # opt_type is in [:min, :max] for minimization / maximization
+    # ndims: number of parameters to optimize
+    # obj_fn: any object defining a #call method (Proc, lambda, custom class)
+    # opt_type: :min or :max, for minimization / maximization of obj_fn
     raise "Hell!" unless [:min, :max].include? opt_type
+    raise "Hell!" unless obj_fn.respond_to? :call
     @ndims, @opt_type, @obj_fn = ndims, opt_type, obj_fn
     @id = NMatrix.identity(ndims, dtype: :float64)
     @dist = Distribution::Normal.rng(0,1)
@@ -25,7 +27,7 @@ class NES
   end
 
   def convergence
-    # estimate convergence as sum of variances
+    # Estimate algorithm convergence as total variance
     sigma.trace
   end
 
@@ -76,24 +78,21 @@ class NES
     samples = standard_normal_samples
     inds = move_inds(samples).to_a
     fits = obj_fn.(inds)
-    # quick cure for NaNs
+    # quick cure for fitness NaNs
     fits.map!{ |x| x.nan? ? (opt_type==:max ? -1 : 1) * Float::INFINITY : x }
     fits_by_sample = samples.to_a.zip(fits).to_h
     # http://ruby-doc.org/core-2.2.0/Enumerable.html#method-i-sort_by
     # refactor: compute the fitness directly in sort_by
     sorted_samples = samples.to_a.sort_by { |s| fits_by_sample[s] }
-    # ary = inds.to_a.each_with_index.sort_by{|_,i| fits[i]}.collect &:first
     sorted_samples.reverse! if opt_type==:min
-    ret = NMatrix[*sorted_samples, dtype: :float64]
-    # require 'pry'; binding.pry
-    ret
+    NMatrix[*sorted_samples, dtype: :float64]
   end
 
   def train
     raise NotImplementedError, "Implement in child class!"
   end
 
-  def run ntrain: 1, printevery: 1
+  def run ntrain: 10, printevery: 1
     ## Set printevery to `false` to disable output printout
     if printevery # Pre-run print
       puts "\n\n    NES training -- #{ntrain} iterations\n"
@@ -105,10 +104,9 @@ class NES
       end
       train   #   <== actual training
     end
-    # End of run print
+    # End-of-run print
     if printevery
       puts "\n    Training complete"
-
       puts "    mu (avg): #{mu.reduce(:+)/ndims}"
       puts "    convergence: #{convergence}"
     end
@@ -122,8 +120,6 @@ class XNES < NES
     g_mu = utils.dot(picks)
     g_log_sigma = popsize.times.inject(NMatrix.zeros_like sigma) do |sum, i|
       u = utils[i]
-      # TODO: there are no zero-utils, can I optimize this with linear alg?
-      next if u.zero? # skip zero-utils calculations
       ind = picks.row(i)
       ind_sq = ind.outer_flat(ind, &:*)
       sum + (ind_sq - id) * u
