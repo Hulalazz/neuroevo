@@ -89,8 +89,8 @@ describe :monkey do
       m_eigenvectors = NMatrix[[0.283349, 0.641675, 1.0],
                                [-1.28335, -0.141675, 1.0],
                                [1.0, -2.0, 1.0]].transpose
-      # NMatrix (LAPACK)
-      eigenvalues, eigenvectors = nmat.eigen
+      # NMatrix (LAPACK) -- e_values, left_e_vecs, right_e_vecs
+      eigenvalues, _, eigenvectors = nmat.eigen
 
       def eigencheck? orig, e_vals, e_vecs
         # INPUT: original matrix, eigenvalues accessible by index,

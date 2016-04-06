@@ -94,15 +94,15 @@ class NMatrix
     # IMPORTANT: requires lapack
     # IMPORTANT: currently fetching only right eigenvectors!
     #            actually left are also computed, then just discarded
+    # RETURNS: eigenvalues, left_eigenvectors, right_eigenvectors
     NMatrix::LAPACK.geev(
-      self.float_dtype? ? self : self.cast(dtype: :float64),
-      :right)
+      self.float_dtype? ? self : self.cast(dtype: :float64))
   end
 
   def exponential
     # Matrix exponential: e^self (not to be confused with self^n !)
     # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
-    values, vectors = eigen
+    values, _, vectors = eigen
     e_vecs_inv = vectors.invert
     diag_e_vals_exp = NMatrix.diagonal values.collect &Math.method(:exp)
     vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
