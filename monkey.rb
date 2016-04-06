@@ -141,6 +141,10 @@ class NMatrix
   # Introducing memoization for size
   # I can't believe it's not hardcoded in C++, it's tied to the
   # underlying implementation anyway!
+  alias :old_shape :shape
+  def shape
+    @shape ||= old_shape
+  end
   alias :old_size :size
   def size
     @size ||= old_size
@@ -148,6 +152,7 @@ class NMatrix
   alias :old_reshape :reshape
   def reshape *args
     @size = nil
+    @shape = nil
     old_reshape *args
   end
 
