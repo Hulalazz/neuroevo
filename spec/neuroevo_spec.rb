@@ -1,43 +1,78 @@
 
 describe "Neuroevolution" do
   context "to approximate the XOR function" do
-    xor_table = {
-      [0,0] => 0,
-      [1,0] => 1,
-      [0,1] => 1,
-      [1,1] => 0
-    }
-
     context "with FFNN (logistic act_fn) as network" do
-      net = FFNN.new [2,2,1], act_fn: :logistic
-      xor_err = lambda do |weights|
-        net.load_weights weights
-        acts = {} # more readable than inject - we're testing here!
-        xor_table.each do |input, _|
-          acts[input] = net.activate(input).first
+
+      class XorErr
+        attr_reader :net, :acts, :res, :errs, :err, :xor_table
+
+        XOR = {
+          [0,0] => 0,
+          [1,0] => 1,
+          [0,1] => 1,
+          [1,1] => 0
+        }
+
+        def initialize
+          @net = FFNN.new [2,2,1], act_fn: :logistic
         end
-        res = {}
-        acts.each do |input, trg|
-          res[input] = trg>0.5 == xor_table[input]>0.5 # do they agree?
+
+        def call inds
+          inds.collect &method(:xor_err)
         end
-        require 'pry'; binding.pry if res.values.all?
-        errs = acts.collect { |k,v| xor_table[k] - v}
-        errs.reduce :+
+
+        def load_weights weights
+          net.load_weights weights
+        end
+
+        def activate_net
+          @acts = {} # more readable than inject - we're testing here!
+          XOR.each do |input, _|
+            @acts[input] = net.activate(input).first
+          end
+        end
+
+        def check_results
+          @res = {}
+          acts.each do |input, trg|
+            @res[input] = trg>0.5 == XOR[input]>0.5 # do they agree?
+          end
+        end
+
+        def compute_error
+          @errs = acts.collect { |k,v| (XOR[k] - v)**2 }
+          @err = errs.reduce :+
+        end
+
+        def xor_err weights
+          load_weights weights
+          activate_net
+          check_results
+          compute_error
+        end
+
+        def nwrong
+          res.values.count(false)
+        end
       end
 
-      context "using XNES as optimizer" do
-        fit = lambda { |inds| inds.collect { |ind| xor_err.call ind } }
-        nes = XNES.new net.nweights, fit, :min
+      fit = XorErr.new
 
-        it "the fitness is correct",:focus do
-          solution_weights = [ [[1,2],[1,2],[0,0]],  [[-1*1000],[8.5*1000],[0]] ]
+      context "with the right weights" do
+        it "verifies the fitness is correct" do
+          solution_weights = [ [[1,2],[1,2],[0,0]],  [[-1000],[850],[0]] ]
           res = fit.([solution_weights.flatten]).first
           assert res.approximates? 0
         end
+      end
 
-        it "correctly approximates XOR" do
-          nes.run ntrain: 5000, printevery: 100
-          assert net.out.all? {|v| v.approximates? 0}
+      context "using XNES as optimizer" do
+        nes = XNES.new fit.net.nweights, fit, :min
+        ntrain = 100
+
+        it "consistently approximates XOR in #{ntrain} generations" do
+          nes.run ntrain: ntrain, printevery: false
+          assert fit.nwrong == 0
         end
       end
     end
