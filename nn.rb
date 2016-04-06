@@ -55,8 +55,8 @@ class NN
   # method #deep_reset will be needed when playing with structure modification
   def deep_reset
     # reset memoization
-    [:layer_row_sizes, :layer_col_sizes, :nlayers, :layer_shapes,
-     :nweights_per_layer, :nweights].each do |sym|
+    [:@layer_row_sizes, :@layer_col_sizes, :@nlayers, :@layer_shapes,
+     :@nweights_per_layer, :@nweights].each do |sym|
        instance_variable_set sym, nil
     end
     reset_state
