@@ -148,7 +148,10 @@ class NN
   end
 
   def self.logistic
-    lambda { |x| Math.exp(x) / (1.0 + Math.exp(x)) }
+    lambda { |x|
+      exp = Math.exp(x)
+      exp.infinite? ? exp : exp / (1.0 + exp)
+    }
   end
 
   def self.lecun_hyperbolic
