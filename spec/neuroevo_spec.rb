@@ -1,5 +1,5 @@
 
-xdescribe "Neuroevolution" do
+describe "Neuroevolution" do
   context "to approximate the XOR function" do
     xor_table = {
       [0,0] => 0,
@@ -9,7 +9,7 @@ xdescribe "Neuroevolution" do
     }
 
     context "with FFNN (logistic act_fn) as network" do
-      net = FFNN.new [2,2,1], act_fn: NN.logistic
+      net = FFNN.new [2,2,1], act_fn: :logistic
       xor_err = lambda do |weights|
         net.load_weights weights
         xor_table.inject(0) do |mem, (input, target)|
@@ -23,7 +23,7 @@ xdescribe "Neuroevolution" do
 
         it "correctly approximates XOR" do
           nes.run ntrain: 50, printevery: false
-          puts "  weights: #{net.layers}"
+          # puts "  weights: #{net.layers}"
           assert net.out.all? {|v| v.approximates? 0}
         end
       end

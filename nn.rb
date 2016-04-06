@@ -8,27 +8,38 @@ class NN
   # layers: list of matrices, each being the weights connecting a
   #    layer's inputs (rows) to a layer's neurons (columns), hence
   #    its shape is [ninputs, nneurs]
-  # state: list of (one-dimensional) matrices, each (the network
-  #   input or) the output of one layer, and which consequently is
-  #   the input of (the recurrent connections and) the next layer
+  # state: list of (one-dimensional) matrices, each (the output or) an
+  #   input to the next layer. This means each matrix is a concatenation
+  #   of previous-layer output (or inputs), possibly (recursion) this
+  #   layer last inputs, and bias (fixed `1`).
   # act_fn: activation function, I guess the good ol' sigmoid will
   #   do for starters
   # struct: the structure of the network, how many (inputs or)
   #   neurons in each layer, hence it's a list of integers
-  attr_accessor :layers, :state, :act_fn, :struct
+  attr_reader :layers, :state, :act_fn, :struct
 
 
   ## Initialization
 
   def initialize struct, act_fn: nil
     @struct = struct
-    @act_fn = act_fn || self.class.sigmoid()
+    @act_fn = self.class.act_fn(act_fn || :sigmoid)
+    # @state holds both inputs, possibly recurrency, and bias
+    # it is a complete input for the next layer, hence size from layer sizes
+    @state = layer_row_sizes.collect do |size|
+      NMatrix.zeros([1, size], dtype: :float64)
+    end
+    # to this, append a matrix to hold the final network output
+    @state.push NMatrix.zeros([1, nneurs(-1)], dtype: :float64)
     reset_state
   end
 
   def reset_state
-    @state = struct.collect do |layer_size|
-      NMatrix.zeros [1, layer_size], dtype: :float64
+    @state.each do |m| # state has only single-row matrices
+      # reset all to zero
+      m[0,0..-1] = 0
+      # bias to all but output
+      m[0,-1] = 1 unless m.object_id == @state.last.object_id
     end
   end
 
@@ -43,8 +54,9 @@ class NN
   # TODO: #deep_reset will be needed when playing with structure modification
   def deep_reset
     # reset memoization
-    [:nweights, :nweights_per_layer, :nlayers, :layer_shapes].each do |sym|
-      instance_variable_set sym, nil
+    [:layer_row_sizes, :layer_col_sizes, :nlayers, :layer_shapes,
+     :nweights_per_layer, :nweights].each do |sym|
+       instance_variable_set sym, nil
     end
     reset_state
   end
@@ -62,10 +74,22 @@ class NN
   end
 
   def weights
-    @layers.collect &:true_to_a
+    layers.collect &:true_to_a
   end
 
-  # define #layer_shapes in child class
+  def layer_col_sizes # number of neurons per layer (excludes input)
+    @layer_col_sizes ||= struct.drop(1)
+  end
+
+  # define #layer_row_sizes in child class: number of inputs per layer
+
+  def layer_shapes
+    @layer_shapes ||= layer_row_sizes.zip layer_col_sizes
+  end
+
+  def nneurs nlay=nil
+    nlay.nil? ? struct.reduce(:+) : struct[nlay]
+  end
 
   def load_weights weights
     raise "Hell!" unless weights.size == nweights
@@ -85,55 +109,56 @@ class NN
   end
 
   def activate input
-    raise "Hell!" unless input.size == state[0].size
-    state[0] = input.is_a?(NMatrix) ? input : NMatrix[input, dtype: :float64]
+    raise "Hell!" unless input.size == struct.first
+    raise "Hell!" unless input.is_a? Array
+    # load input in first state
+    @state[0][0, 0..-2] = input
+    # activate layers in sequence
     (0...nlayers).each do |i|
-      state[i+1] = activate_layer i
+      act = activate_layer i
+      @state[i+1][0,0...act.size] = act
     end
     return out
   end
 
   def out
-    state.last # activation of output layer (NMatrix)
+    state.last.to_flat_a # activation of output layer (NMatrix)
   end
 
   # define #activate_layer in child class
 
 
   ## Activation functions
-  # TODO: move to class?
+
+  def self.act_fn type, *args
+    fn = send(type,*args)
+    lambda do |inputs|
+      NMatrix.build([1, inputs.size], dtype: :float64) do |_,i|
+        # single-row matrix, indices are columns
+        fn.call inputs[i]
+      end
+    end
+  end
 
   def self.sigmoid k=0.5
     # k is steepness:  0<k<1 is flatter, 1<k is flatter
     # flatter makes activation less sensitive, better with large number of inputs
-    lambda do |inputs|
-      NMatrix.build([1, inputs.size], dtype: :float64) do |_,i| # single-row matrix column indices
-        1.0 / (Math.exp(-k * inputs[i]) + 1.0) # actual sigmoid equation
-      end
-    end
+    lambda { |x| 1.0 / (Math.exp(-k * x) + 1.0) }
   end
 
   def self.logistic
-    lambda do |inputs|
-      NMatrix.build([1, inputs.size], dtype: :float64) do |_,i| # single-row matrix column indices
-        Math.exp(inputs[i]) / (1.0 + Math.exp(inputs[i])) # actual logistic equation
-      end
-    end
+    lambda { |x| Math.exp(x) / (1.0 + Math.exp(x)) }
   end
 
   def self.lecun_hyperbolic
     # http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf Section 4.4
-    lambda do |inputs|
-      NMatrix.build([1, inputs.size], dtype: :float64) do |_,i| # single-row matrix column indices
-        1.7159 * Math.tanh(2.0*inputs[i]/3.0) + 1e-3 * inputs[i]
-      end
-    end
+    lambda { |x| 1.7159 * Math.tanh(2.0*x/3.0) + 1e-3*x }
   end
 
 
   ## Interface to implement in child class
 
-  [:layer_shapes, :activate_layer].each do |sym|
+  [:layer_row_sizes, :activate_layer].each do |sym|
     define_method sym do |*args|
       raise NotImplementedError, "Method ##{sym} needs to be implemented in child class!"
     end
@@ -143,17 +168,14 @@ end
 
 class FFNN < NN
   # Feed Forward Neural Network
-  def layer_shapes
-    @layer_shapes ||= struct.each_cons(2).collect do |inputs, neurons|
-      [inputs+1, neurons] # +1 bias
-    end
+
+  def layer_row_sizes
+    # inputs (or previous-layer activations) and bias
+    @layer_row_sizes ||= struct.each_cons(2).collect {|prev, curr| prev+1}
   end
 
   def activate_layer i
-    # Using #dot (inner product) means the composition
-    # function is a weighted sum.
-    input = state[i].hjoin(bias) # input+bias
-    act_fn.call( input.dot layers[i] )
+    act_fn.call( state[i].dot layers[i] )
   end
 
 end
@@ -161,17 +183,34 @@ end
 
 class RNN < NN
   # Recurrent Neural Network
-  def layer_shapes
-    @layer_shapes ||= struct.each_cons(2).collect do |inputs, neurons|
-      [inputs+neurons+1, neurons] # +neurons recurrent, +1 bias
+
+  def layer_row_sizes
+    # each row holds the inputs for the next level: previous level's
+    # activations (or inputs), this level's last activations
+    # (recursion) and bias
+    @layer_row_sizes ||= struct.each_cons(2).collect do |prev, rec|
+      prev + rec +1
     end
   end
 
   def activate_layer i
-    # Using #dot (inner product) means the composition
-    # function is a weighted sum.
-    input = state[i].hjoin(state[i+1]).hjoin(bias) # input+recurr+bias
-    act_fn.call( input.dot layers[i] )
+    act_fn.call( state[i].dot layers[i] )
+  end
+
+  def activate_layer nlay #_layer
+    # NOTE WELL: current layer corresponds to state current+1!
+    # so previous layer has index nlay, current layer has index nlay+1
+    previous = nlay
+    current = nlay + 1
+    # first, need to copy the level's last activation in the previous state
+    # ranges in NMatrix#[] not reliable! gotta loop :(
+    # @state[previous][0, previous_rec_pos] = state[current][0, current_acts_pos]
+    nneurs(current).times do |i| # for each activations to copy
+      # the previous state corresponding recursion equals to the current
+      # state activation (last-timestep, since `act_fn` is called later)
+      @state[previous][0, nneurs(previous) + i] = state[current][0, i]
+    end
+    act_fn.call( state[previous].dot layers[nlay] )
   end
 
 end
