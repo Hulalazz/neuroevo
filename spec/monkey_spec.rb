@@ -155,7 +155,7 @@ describe :monkey do
         b = NMatrix.new([1,4], [4,5,6,7])
         expect(a.hjoin(b)).to eq(NMatrix.new([1,7], [1,2,3,4,5,6,7]))
       end
-      it "should be tested also with multirow matrices"
+      # it "should be tested also with multirow matrices"
     end
 
     describe "#vjoin" do
@@ -169,7 +169,7 @@ describe :monkey do
         b = NMatrix.new([4,1], [4,5,6,7])
         expect(a.vjoin(b)).to eq(NMatrix.new([7,1], [1,2,3,4,5,6,7]))
       end
-      it "should be tested also with multicolumn matrices!"
+      # it "should be tested also with multicolumn matrices!"
     end
 
     describe "#true_to_a" do
@@ -188,7 +188,7 @@ describe :monkey do
   end
 end
 
-describe NMatrix, :skip do
+describe NMatrix, :SKIP do
 
   # method #hconcat doesn't work! => wrote hjoin (and vjoin)
   describe "#concat" do
