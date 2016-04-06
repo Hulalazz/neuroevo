@@ -22,13 +22,18 @@ describe :NN do
       assert net.state == initial_state
     end
 
-    xit "#deep_reset" do
+    it "#deep_reset" do
+      memoized_vars = [:@layer_row_sizes, :@layer_col_sizes, :@nlayers,
+        :@layer_shapes, :@nweights_per_layer, :@nweights]
       net.nweights
-      refute net.instance_variable_get(:@nweights).nil?
-      refute net.instance_variable_get(:@layer_shapes).nil?
+      net.nlayers
+      memoized_vars.each do |sym|
+        refute net.instance_variable_get(sym).nil?
+      end
       net.deep_reset
-      assert net.instance_variable_get(:@nweights).nil?
-      assert net.instance_variable_get(:@layer_shapes).nil?
+      memoized_vars.each do |sym|
+        assert net.instance_variable_get(sym).nil?
+      end
     end
 
     it "#nweights" do
