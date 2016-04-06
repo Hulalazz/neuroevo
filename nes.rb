@@ -21,8 +21,20 @@ class NES
     @id = NMatrix.identity(ndims, dtype: :float64)
     @dist = Distribution::Normal.rng(0,1)
     # @dist = Distribution::Uniform.rng(0,1)
-    @mu = NMatrix.new([1, ndims], 0, dtype: :float64)
-    @log_sigma = NMatrix.identity(ndims, dtype: :float64)
+    reset
+  end
+
+  def reset
+    load_mu NMatrix.new([1, ndims], 0, dtype: :float64)
+    load_log_sigma NMatrix.identity(ndims, dtype: :float64)
+  end
+
+  def load_mu new_mu
+    @mu = new_mu
+  end
+
+  def load_log_sigma new_log_sigma
+    @log_sigma = new_log_sigma
     @sigma = log_sigma.exponential
   end
 
