@@ -71,7 +71,7 @@ describe :NN do
           [0,0] => 0,
           [1,0] => 1,
           [0,1] => 1,
-          [1,1] => 0,
+          [1,1] => 0
         }
         net = FFNN.new([2,2,1], act_fn: :logistic)
         #              2 in + b -> 3 neur,  2 in + b -> 1 neur

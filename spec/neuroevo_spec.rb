@@ -5,7 +5,7 @@ describe "Neuroevolution" do
       [0,0] => 0,
       [1,0] => 1,
       [0,1] => 1,
-      [1,1] => 0,
+      [1,1] => 0
     }
 
     context "with FFNN (logistic act_fn) as network" do

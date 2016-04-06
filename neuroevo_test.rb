@@ -1,3 +1,5 @@
+# Only used for profiling, refer to specs!
+
 require_relative 'nes'
 require_relative 'nn'
 
@@ -8,7 +10,7 @@ xor_table = {
   [1,1] => 0,
 }
 
-net = FFNN.new [2,2,1], act_fn: NN.logistic
+net = FFNN.new [2,2,1], act_fn: :logistic
 xor_err = lambda do |weights|
   net.load_weights weights
   xor_table.inject(0) do |mem, (input, target)|
