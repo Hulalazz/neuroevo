@@ -89,8 +89,8 @@ describe :monkey do
       m_eigenvectors = NMatrix[[0.283349, 0.641675, 1.0],
                                [-1.28335, -0.141675, 1.0],
                                [1.0, -2.0, 1.0]].transpose
-      # NMatrix (LAPACK)
-      eigenvalues, eigenvectors = nmat.eigen
+      # NMatrix (LAPACK) -- e_values, left_e_vecs, right_e_vecs
+      eigenvalues, _, eigenvectors = nmat.eigen
 
       def eigencheck? orig, e_vals, e_vecs
         # INPUT: original matrix, eigenvalues accessible by index,
@@ -155,7 +155,7 @@ describe :monkey do
         b = NMatrix.new([1,4], [4,5,6,7])
         expect(a.hjoin(b)).to eq(NMatrix.new([1,7], [1,2,3,4,5,6,7]))
       end
-      it "should be tested also with multirow matrices"
+      # it "should be tested also with multirow matrices"
     end
 
     describe "#vjoin" do
@@ -169,7 +169,7 @@ describe :monkey do
         b = NMatrix.new([4,1], [4,5,6,7])
         expect(a.vjoin(b)).to eq(NMatrix.new([7,1], [1,2,3,4,5,6,7]))
       end
-      it "should be tested also with multicolumn matrices!"
+      # it "should be tested also with multicolumn matrices!"
     end
 
     describe "#true_to_a" do
@@ -188,9 +188,10 @@ describe :monkey do
   end
 end
 
-describe NMatrix, :skip do
+describe NMatrix, :SKIP do
+
   # method #hconcat doesn't work! => wrote hjoin (and vjoin)
-  context "#concat" do
+  describe "#concat" do
     it "should work with smaller matrices" do
       a = NMatrix.new([1,3], [1,2,3])
       b = NMatrix.new([1,2], [4,5])
@@ -202,8 +203,9 @@ describe NMatrix, :skip do
       expect(a.concat(b)).to eq(NMatrix.new([1,7], [1,2,3,4,5,6,7]))
     end
   end
-  # method #to_a doesn't work! => wrote true_to_a (fixing it breaks #new)
-  context "#to_a" do
+
+  # method #to_a not consistent! => wrote true_to_a (fixing it breaks #new)
+  describe "#to_a" do
     it "should always return an array with the same shape as the matrix" do
       { [2,2] => [[1,2],[3,4]],        # square
         [2,3] => [[1,2,3],[4,5,6]],    # rectangular (h)
@@ -214,6 +216,46 @@ describe NMatrix, :skip do
       }.each do |shape, ary|
         expect(NMatrix.new(shape, ary.flatten).to_a).to eq ary
       end
+    end
+  end
+
+  # method #[] works with ranges only sometimes!
+  # case to reproduce: single-row matrix
+  describe "#[]" do
+    context "with single value on the right" do
+      it "should work consistently with ranges" do
+        mat = NMatrix.zeros(3)
+        assert mat == NMatrix[[0,0,0],[0,0,0],[0,0,0]]
+        mat[0,0] = 1
+        assert mat == NMatrix[[1,0,0],[0,0,0],[0,0,0]]
+        mat[0..1,0..1] = 1
+        assert mat == NMatrix[[1,1,0],[1,1,0],[0,0,0]]
+        mat[0..1,0..-1] = 1
+        assert mat == NMatrix[[1,1,1],[1,1,1],[0,0,0]]
+        mat[0..-1,0..1] = 1
+        assert mat == NMatrix[[1,1,1],[1,1,1],[1,1,0]]
+        mat[0..-1,0..-1] = 1
+        assert mat == NMatrix[[1,1,1],[1,1,1],[1,1,1]]
+      end
+      it "should work with negative indices"
+    end
+
+    context "with array of values on the right" do
+      it "should work consistently with ranges" do
+        mat = NMatrix.zeros(3)
+        assert mat == NMatrix[[0,0,0],[0,0,0],[0,0,0]]
+        mat[0,0] = [1]
+        assert mat == NMatrix[[1,0,0],[0,0,0],[0,0,0]]
+        mat[0..1,0..1] = [1]*4
+        assert mat == NMatrix[[1,1,0],[1,1,0],[0,0,0]]
+        mat[0..1,0..-1] = [1]*6
+        assert mat == NMatrix[[1,1,1],[1,1,1],[0,0,0]]
+        mat[0..-1,0..1] = [1]*8
+        assert mat == NMatrix[[1,1,1],[1,1,1],[1,1,0]]
+        mat[0..-1,0..-1] = [1]*9
+        assert mat == NMatrix[[1,1,1],[1,1,1],[1,1,1]]
+      end
+      it "should work with negative indices"
     end
   end
 end
