@@ -1,5 +1,5 @@
 require_relative 'neuroevo/monkey.rb'
 require_relative 'neuroevo/nes.rb'
-require_relative 'neuroevo/nes_test.rb'
-require_relative 'neuroevo/neuroevo_test.rb'
+# require_relative 'neuroevo/nes_test.rb'
+# require_relative 'neuroevo/neuroevo_test.rb'
 require_relative 'neuroevo/nn.rb'
