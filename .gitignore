@@ -4,3 +4,4 @@
 *.pdf
 profile*
 img/
+*.gem
