@@ -36,8 +36,8 @@ EOF
   s.required_ruby_version = '~> 2.0'
 
   # Install
-  s.add_development_dependency 'bundler', '~> 1.8'
-  s.add_development_dependency 'rake', '~>10.5'
+  s.add_development_dependency 'bundler', '~> 1.12'
+  s.add_development_dependency 'rake', '~> 11.1'
 
   # Test
   s.add_development_dependency 'rspec', '~> 3.4'
@@ -45,13 +45,13 @@ EOF
 
   # Debug
   s.add_development_dependency 'pry', '~> 0.10'
-  s.add_development_dependency 'pry-rescue', '~> 1.4'
   s.add_development_dependency 'pry-nav', '~> 0.2'
+  s.add_development_dependency 'pry-rescue', '~> 1.4'
   s.add_development_dependency 'pry-stack_explorer', '~> 0.4'
 
   # Run
-  s.add_runtime_dependency 'nmatrix', '~> 0.2.1'
-  s.add_runtime_dependency 'nmatrix-atlas', '~> 0.2.1'
-  s.add_runtime_dependency 'distribution', '~> 0.7.0'
+  s.add_runtime_dependency 'nmatrix', '~> 0.2'
+  s.add_runtime_dependency 'nmatrix-atlas', '~> 0.2'
+  s.add_runtime_dependency 'distribution', '~> 0.7'
 
 end

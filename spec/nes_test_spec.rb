@@ -1,3 +1,4 @@
+require_relative '../lib/neuroevo/nes_test'
 
 describe :nes_test do
 

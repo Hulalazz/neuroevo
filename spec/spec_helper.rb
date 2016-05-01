@@ -19,7 +19,9 @@
 
 
 require 'ae/adapters/rspec'
-require_relative '../lib/neuroevo/nes_test'
+require 'nmatrix'
+require 'distribution'
+require_relative '../lib/neuroevo/nes'
 require_relative '../lib/neuroevo/nn'
 
 STDOUT.sync = true
