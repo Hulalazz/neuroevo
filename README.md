@@ -4,7 +4,7 @@
 [![Code Climate](https://codeclimate.com/github/giuseppecuccu/neuroevo/badges/gpa.svg)](https://codeclimate.com/github/giuseppecuccu/neuroevo)
 
 
-This is working code from me to me. I am not producing community-quality
+This is just working code from me to me. I am not producing community-quality
 code ATM, just squeezing back what I need from my old Mathematica code.
 
 The gem build is there for easier import rather than sharing purposes.

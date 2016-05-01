@@ -3,8 +3,6 @@ require_relative 'monkey'
 
 # NOTE: objective function should take whole population as input.
 # This separates algorithm parallelization from evaluation parallelization.
-#   TODO: make it work anyway if a single-ind objective function
-#   is provided (automatic check? add param key to init?)
 
 class NES
   # Translated from Giuse's NES Mathematica library
