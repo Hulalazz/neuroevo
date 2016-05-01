@@ -1,7 +1,9 @@
-.rspec
+*.gem
+Gemfile.lock
+
+spec/examples.txt
 *.csv
 *.dot
 *.pdf
 profile*
 img/
-*.gem

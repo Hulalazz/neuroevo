@@ -1,4 +1,3 @@
-
 describe :monkey do
 
   # describe :Symbol do
