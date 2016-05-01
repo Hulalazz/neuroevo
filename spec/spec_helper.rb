@@ -20,7 +20,6 @@
 
 require 'ae/adapters/rspec'
 require 'nmatrix'
-require 'distribution'
 require_relative '../lib/neuroevo/nes'
 require_relative '../lib/neuroevo/nn'
 

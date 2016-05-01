@@ -1,5 +1,4 @@
 require 'nmatrix'
-require 'distribution' # If you have GSL installed and want to speed things up: gem install rb-gsl
 require_relative 'monkey'
 
 # NOTE: objective function should take whole population as input.
