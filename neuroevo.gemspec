@@ -2,9 +2,11 @@
 lib = File.expand_path('../lib', __FILE__)
 require_relative 'lib/neuroevo/version'
 
+v_from_branch = `git rev-parse --abbrev-ref HEAD`[/\d+.\d+.\d+$/]
+v_from_tag = `git describe`
 Gem::Specification.new do |s|
   s.name          = 'neuroevo'
-  s.version       = Neuroevo::VERSION
+  s.version       = v_from_branch || v_from_tag || raise "Missing version"
   s.platform      = Gem::Platform::RUBY
   s.date          = '2016-04-29'
   s.authors       = ['Giuseppe Cuccu']
