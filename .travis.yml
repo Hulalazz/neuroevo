@@ -4,7 +4,9 @@ language:
 rvm:
   - 2.2
 
-cache: bundler
+cache:
+- bundler
+- apt
 
 before_install:
   - gem update --system
