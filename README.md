@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/giuseppecuccu/neuroevo.svg?branch=master)](https://travis-ci.org/giuseppecuccu/neuroevo)
 This is working code from me to me. I am not producing community-quality
 code ATM, just squeezing back what I need from my old Mathematica code.
 
