@@ -1,4 +1,9 @@
+# [Neuroevo](https://github.com/giuseppecuccu/neuroevo)
+
 [![Build Status](https://travis-ci.org/giuseppecuccu/neuroevo.svg?branch=master)](https://travis-ci.org/giuseppecuccu/neuroevo)
+[![Code Climate](https://codeclimate.com/github/giuseppecuccu/neuroevo/badges/gpa.svg)](https://codeclimate.com/github/giuseppecuccu/neuroevo)
+
+
 This is working code from me to me. I am not producing community-quality
 code ATM, just squeezing back what I need from my old Mathematica code.
 
