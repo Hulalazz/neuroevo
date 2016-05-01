@@ -9,16 +9,26 @@ Gem::Specification.new do |s|
   s.version       = v_from_branch || v_from_tag || raise "Missing version"
   s.platform      = Gem::Platform::RUBY
   s.date          = '2016-04-29'
-  s.authors       = ['Giuseppe Cuccu']
-  s.email         = ['giuseppe.cuccu@gmail.com']
+  s.author        = 'Giuseppe Cuccu'
+  s.email         = 'giuseppe.cuccu@gmail.com'
   s.summary       = "Porting of my old neuroevolution research code to Ruby."
   s.description   = "This is code I'm working on, I'm creating a gem just to easily import it in a larger framework. It's not intended for distribution as of now, but you're welcome to play with it :)"
   s.homepage      = 'https://www.github.com/giuseppecuccu/neuroevo'
   s.license       = 'MIT'
   s.post_install_message = <<-EOF
-********************************************************************************
+************************************************************************
                           BEWARE - HERE BE DRAGONS
-********************************************************************************
+************************************************************************
+This is working code from me to me. I am not producing community-quality
+code ATM, just squeezing back what I need from my old Mathematica code.
+
+The gem build is there for easier import rather than sharing purposes.
+I presently consider the future of this code as a future consideration.
+
+That said, if you'd like to make my code your own, you'll find me most
+enthusiast :)
+
+Thanks!
 EOF
 
   s.rubyforge_project = "neuroevo" # required for validation
