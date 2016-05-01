@@ -7,3 +7,4 @@ spec/examples.txt
 *.pdf
 profile*
 img/
+sketchbook.rb
