@@ -17,10 +17,7 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
-
 require 'ae/adapters/rspec'
-require 'nmatrix'
-require 'distribution'
 require_relative '../lib/neuroevo/nes'
 require_relative '../lib/neuroevo/nn'
 
