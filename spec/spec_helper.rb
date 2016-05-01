@@ -19,8 +19,8 @@
 
 
 require 'ae/adapters/rspec'
-require_relative '../nes_test'
-require_relative '../nn'
+require_relative '../lib/neuroevo/nes_test'
+require_relative '../lib/neuroevo/nn'
 
 STDOUT.sync = true
 
