@@ -1,27 +1,32 @@
 require 'nmatrix'
-require 'distribution' # If you have GSL installed and want to speed things up: gem install rb-gsl
 require_relative 'monkey'
 
 # NOTE: objective function should take whole population as input.
 # This separates algorithm parallelization from evaluation parallelization.
-#   TODO: make it work anyway if a single-ind objective function
-#   is provided (automatic check? add param key to init?)
 
 class NES
   # Translated from Giuse's NES Mathematica library
-  attr_reader :ndims, :mu, :log_sigma, :sigma, :dist, :opt_type, :obj_fn, :id
+  attr_reader :ndims, :mu, :log_sigma, :sigma, :opt_type, :obj_fn, :id, :rand
 
-  def initialize ndims, obj_fn, opt_type
+  def initialize ndims, obj_fn, opt_type, seed: nil
     # ndims: number of parameters to optimize
     # obj_fn: any object defining a #call method (Proc, lambda, custom class)
     # opt_type: :min or :max, for minimization / maximization of obj_fn
+    # seed: allow for deterministic execution on seed provided
     raise "Hell!" unless [:min, :max].include? opt_type
     raise "Hell!" unless obj_fn.respond_to? :call
     @ndims, @opt_type, @obj_fn = ndims, opt_type, obj_fn
     @id = NMatrix.identity(ndims, dtype: :float64)
-    @dist = Distribution::Normal.rng(0,1)
-    # @dist = Distribution::Uniform.rng(0,1)
+    @rand = Random.new seed || Random.new_seed
     reset
+  end
+
+  # Box-Muller transform: generates unit normal distribution samples
+  def unit_normal_sample
+    rho = Math.sqrt(-2.0 * Math.log(rand.rand))
+    theta = 2 * Math::PI * rand.rand
+    tfn = rand.rand > 0.5 ? :cos : :sin
+    rho * Math.send(tfn, theta)
   end
 
   def reset
@@ -69,7 +74,7 @@ class NES
   end
 
   def standard_normal_samples
-    NMatrix.build([popsize,ndims], dtype: :float64) {dist.call}
+    NMatrix.build([popsize,ndims], dtype: :float64) {unit_normal_sample}
   end
 
   def move_inds inds

@@ -52,6 +52,5 @@ EOF
   # Run
   s.add_runtime_dependency 'nmatrix', '~> 0.2'
   s.add_runtime_dependency 'nmatrix-atlas', '~> 0.2'
-  s.add_runtime_dependency 'distribution', '~> 0.7'
 
 end
