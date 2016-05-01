@@ -2,6 +2,7 @@
 Gemfile.lock
 .rspec
 
+spec/examples.txt
 *.csv
 *.dot
 *.pdf
