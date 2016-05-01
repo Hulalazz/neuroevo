@@ -1,5 +1,6 @@
 # [Neuroevo](https://github.com/giuseppecuccu/neuroevo)
 
+[![Gem Version](https://badge.fury.io/rb/neuroevo.svg)](https://badge.fury.io/rb/neuroevo)
 [![Build Status](https://travis-ci.org/giuseppecuccu/neuroevo.svg?branch=master)](https://travis-ci.org/giuseppecuccu/neuroevo)
 [![Code Climate](https://codeclimate.com/github/giuseppecuccu/neuroevo/badges/gpa.svg)](https://codeclimate.com/github/giuseppecuccu/neuroevo)
 
