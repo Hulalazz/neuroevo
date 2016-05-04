@@ -45,8 +45,8 @@ describe NES do
 
       #### Algorithm initialization
       init_mu: NMatrix.zeros([1,ndims]),
-      init_log_sigma: NMatrix.identity(ndims),
-      init_sigma:  NMatrix.identity(ndims) * 2.71828,
+      init_log_sigma: NMatrix.zeros(ndims),
+      init_sigma:  NMatrix.identity(ndims),
 
       #### Search state after 3 generations
 
@@ -268,11 +268,12 @@ describe NES do
 
       describe "full run" do
         opt_type = opt_types.sample # try either :)
-        nes = XNES.new m[:ndims], obj_fns[opt_type], opt_type
-        ntimes = 200
+        nes = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
+        # note: `seed: 2` less lucky, for `ntimes = 125` FAILS
+        ntimes = 125
         context "within #{ntimes} iterations" do
           it "optimizes the negative squares function" do
-            nes.run ntrain: 200, printevery: false # 50
+            nes.run ntrain: ntimes, printevery: false # 50
             assert nes.mu.all? { |v| v.approximates? 0 }
             assert nes.convergence.approximates? 0
           end
@@ -284,11 +285,12 @@ describe NES do
   describe SNES do
     describe "full run" do
       opt_type = opt_types.sample # try either :)
-      nes = SNES.new 5, obj_fns[opt_type], opt_type
-      ntimes = 200
+      nes = SNES.new 5, obj_fns[opt_type], opt_type, seed: 1
+      # note: `seed: 2` less lucky, for `ntimes = 110` FAILS
+      ntimes = 110
       context "within #{ntimes} iterations" do
         it "optimizes the negative squares function" do
-          nes.run ntrain: 200, printevery: 20 #false # 50
+          nes.run ntrain: ntimes, printevery: false # 50
           assert nes.mu.all? { |v| v.approximates? 0 }
           assert nes.convergence.approximates? 0
         end
