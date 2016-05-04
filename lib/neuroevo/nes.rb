@@ -7,8 +7,8 @@ require_relative 'monkey'
 # Translated from Giuse's NES Mathematica library
 
 class NES
-  attr_reader :ndims, :mu, :log_sigma, :sigma, :opt_type, :obj_fn, :id, :rand
   # Natural Evolution Strategies
+  attr_reader :ndims, :mu, :sigma, :opt_type, :obj_fn, :id, :rand
 
   def initialize ndims, obj_fn, opt_type, seed: nil
     # ndims: number of parameters to optimize
@@ -20,7 +20,7 @@ class NES
     @ndims, @opt_type, @obj_fn = ndims, opt_type, obj_fn
     @id = NMatrix.identity(ndims, dtype: :float64)
     @rand = Random.new seed || Random.new_seed
-    reset
+    initialize_distribution
   end
 
   # Box-Muller transform: generates unit normal distribution samples
@@ -29,20 +29,6 @@ class NES
     theta = 2 * Math::PI * rand.rand
     tfn = rand.rand > 0.5 ? :cos : :sin
     rho * Math.send(tfn, theta)
-  end
-
-  def reset
-    load_mu NMatrix.new([1, ndims], 0, dtype: :float64)
-    load_log_sigma NMatrix.identity(ndims, dtype: :float64)
-  end
-
-  def load_mu new_mu
-    @mu = new_mu
-  end
-
-  def load_log_sigma new_log_sigma
-    @log_sigma = new_log_sigma
-    @sigma = log_sigma.exponential
   end
 
   def convergence
@@ -135,6 +121,14 @@ end
 
 class XNES < NES
   # Exponential NES
+  attr_reader :log_sigma
+
+  def initialize_distribution
+    @mu = NMatrix.new([1, ndims], 0, dtype: :float64)
+    @log_sigma = NMatrix.identity(ndims, dtype: :float64)
+    @sigma = log_sigma.exponential
+  end
+
   def train
     picks = sorted_inds
     g_mu = utils.dot(picks)
