@@ -31,11 +31,6 @@ class NES
     rho * Math.send(tfn, theta)
   end
 
-  def convergence
-    # Estimate algorithm convergence as total variance
-    sigma.trace
-  end
-
   # Doubling popsize and halving lrate often helps
   def utils;   @utilities ||= hansen_utilities   end
   def popsize; @popsize   ||= hansen_popsize * 2 end
@@ -105,7 +100,7 @@ class NES
     # Actual run
     ntrain.times do |i|
       if printevery and i==0 || (i+1)%printevery==0
-        puts "\n#{i+1}/#{ntrain}\n  mu:    #{mu}\n  sigma: #{sigma.diagonal}"
+        puts "\n#{i+1}/#{ntrain}\n  mu:   #{mu}\n  conv: #{convergence}"
       end
       train   #   <== actual training
     end
@@ -142,4 +137,10 @@ class XNES < NES
     @log_sigma += g_log_sigma * (lrate/2)
     @sigma = log_sigma.exponential
   end
+
+  def convergence
+    # Estimate algorithm convergence as total variance
+    sigma.trace
+  end
+end
 end
