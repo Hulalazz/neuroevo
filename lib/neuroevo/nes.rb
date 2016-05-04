@@ -100,15 +100,13 @@ class NES
     # Actual run
     ntrain.times do |i|
       if printevery and i==0 || (i+1)%printevery==0
-        puts "\n#{i+1}/#{ntrain}\n  mu:   #{mu}\n  conv: #{convergence}"
+        puts "\n#{i+1}/#{ntrain}\n  mu (avg): #{mu.reduce(:+)/ndims}\n  conv: #{convergence}"
       end
       train   #   <== actual training
     end
     # End-of-run print
     if printevery
       puts "\n    Training complete"
-      puts "    mu (avg): #{mu.reduce(:+)/ndims}"
-      puts "    convergence: #{convergence}"
     end
   end
 
