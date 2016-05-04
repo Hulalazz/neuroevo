@@ -1,6 +1,13 @@
 
-describe :nes do
+describe NES do
   describe :hansen do
+
+    class TestNES < NES
+      def initialize_distribution
+        @mu = NMatrix.zeros([1,@ndims])
+        @sigma = NMatrix.identity(@ndims)
+      end
+    end
 
     describe :utilities do
 
@@ -12,7 +19,7 @@ describe :nes do
 
       it "correspond to Mathematica values" do
         expected.each do |n, exp|
-          nes = NES.new(n, Proc.new{}, :min)
+          nes = TestNES.new(n, Proc.new{}, :min)
           nes.instance_eval("@popsize = n")
           assert nes.hansen_utilities.approximates? NMatrix[exp]
         end
@@ -28,7 +35,7 @@ describe :nes do
 
       it "correspond to Mathematica values" do
         expected.each do |n, exp|
-          nes = NES.new(n, Proc.new{}, :min)
+          nes = TestNES.new(n, Proc.new{}, :min)
           assert nes.hansen_lrate.approximates? exp
         end
       end
@@ -43,7 +50,7 @@ describe :nes do
 
       it "correspond to Mathematica values" do
         expected.each do |n, exp|
-          nes = NES.new(n, Proc.new{}, :min)
+          nes = TestNES.new(n, Proc.new{}, :min)
           assert nes.hansen_popsize == exp
         end
       end
