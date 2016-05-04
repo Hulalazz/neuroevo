@@ -101,11 +101,16 @@ class NMatrix
 
   def exponential
     # Matrix exponential: e^self (not to be confused with self^n !)
-    # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
-    values, _, vectors = eigen
-    e_vecs_inv = vectors.invert
-    diag_e_vals_exp = NMatrix.diagonal values.collect &Math.method(:exp)
-    vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
+    # special cases: one-dimensional matrix: just exponentiate the values
+    if self.dim == 1 or self.dim == 2 && self.shape.include?(1)
+      NMatrix.new self.shape, self.collect(&Math.method(:exp))
+    else
+      # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
+      values, _, vectors = eigen
+      e_vecs_inv = vectors.invert
+      diag_e_vals_exp = NMatrix.diagonal values.collect &Math.method(:exp)
+      vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
+    end
   end
 
   def approximates? other, epsilon=1e-5
