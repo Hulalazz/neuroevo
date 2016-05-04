@@ -269,8 +269,8 @@ describe NES do
       describe "full run" do
         opt_type = opt_types.sample # try either :)
         nes = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
-        # note: `seed: 2` less lucky, for `ntimes = 125` FAILS
-        ntimes = 125
+        # note: `seed: 2` less lucky, for `ntimes = 115` FAILS
+        ntimes = 115
         context "within #{ntimes} iterations" do
           it "optimizes the negative squares function" do
             nes.run ntrain: ntimes, printevery: false # 50
