@@ -145,4 +145,28 @@ class XNES < NES
     sigma.trace
   end
 end
+
+class SNES < NES
+  # Separable NES
+  attr_reader :variances
+
+  def initialize_distribution
+    @mu = NMatrix.zeros([1, ndims], dtype: :float64)
+    @variances = NMatrix.ones([1,ndims], dtype: :float64)
+    @sigma = NMatrix.diagonal variances
+  end
+
+  def train
+    picks = sorted_inds
+    g_mu = utils.dot(picks)
+    g_sigma = utils.dot(picks**2 - 1)
+    @mu += sigma.dot(g_mu.transpose).transpose * lrate
+    @variances *= (g_sigma * lrate / 2).exponential
+    @sigma = NMatrix.diagonal variances
+  end
+
+  def convergence
+    # Estimate algorithm convergence as total variance
+    variances.reduce :+
+  end
 end
