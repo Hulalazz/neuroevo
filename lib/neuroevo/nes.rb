@@ -4,9 +4,11 @@ require_relative 'monkey'
 # NOTE: objective function should take whole population as input.
 # This separates algorithm parallelization from evaluation parallelization.
 
+# Translated from Giuse's NES Mathematica library
+
 class NES
-  # Translated from Giuse's NES Mathematica library
-  attr_reader :ndims, :mu, :log_sigma, :sigma, :opt_type, :obj_fn, :id, :rand
+  # Natural Evolution Strategies
+  attr_reader :ndims, :mu, :sigma, :opt_type, :obj_fn, :id, :rand
 
   def initialize ndims, obj_fn, opt_type, seed: nil
     # ndims: number of parameters to optimize
@@ -18,7 +20,7 @@ class NES
     @ndims, @opt_type, @obj_fn = ndims, opt_type, obj_fn
     @id = NMatrix.identity(ndims, dtype: :float64)
     @rand = Random.new seed || Random.new_seed
-    reset
+    initialize_distribution
   end
 
   # Box-Muller transform: generates unit normal distribution samples
@@ -27,25 +29,6 @@ class NES
     theta = 2 * Math::PI * rand.rand
     tfn = rand.rand > 0.5 ? :cos : :sin
     rho * Math.send(tfn, theta)
-  end
-
-  def reset
-    load_mu NMatrix.new([1, ndims], 0, dtype: :float64)
-    load_log_sigma NMatrix.identity(ndims, dtype: :float64)
-  end
-
-  def load_mu new_mu
-    @mu = new_mu
-  end
-
-  def load_log_sigma new_log_sigma
-    @log_sigma = new_log_sigma
-    @sigma = log_sigma.exponential
-  end
-
-  def convergence
-    # Estimate algorithm convergence as total variance
-    sigma.trace
   end
 
   # Doubling popsize and halving lrate often helps
@@ -117,7 +100,7 @@ class NES
     # Actual run
     ntrain.times do |i|
       if printevery and i==0 || (i+1)%printevery==0
-        puts "\n#{i+1}/#{ntrain}\n  mu:    #{mu}\n  sigma: #{sigma.diagonal}"
+        puts "\n#{i+1}/#{ntrain}\n  mu:   #{mu}\n  conv: #{convergence}"
       end
       train   #   <== actual training
     end
@@ -132,6 +115,17 @@ class NES
 end
 
 class XNES < NES
+  # Exponential NES
+  attr_reader :log_sigma
+
+  def initialize_distribution
+    @mu = NMatrix.new([1, ndims], 0, dtype: :float64)
+    @sigma = NMatrix.identity(ndims, dtype: :float64)
+    # XNES mostly works with the log of sigma to avoid continuous decompositions
+    # question: what is the matrix that, once exponentiated, yields identity?
+    @log_sigma = NMatrix.zeros(ndims, dtype: :float64)
+  end
+
   def train
     picks = sorted_inds
     g_mu = utils.dot(picks)
@@ -144,5 +138,35 @@ class XNES < NES
     @mu += sigma.dot(g_mu.transpose).transpose * lrate
     @log_sigma += g_log_sigma * (lrate/2)
     @sigma = log_sigma.exponential
+  end
+
+  def convergence
+    # Estimate algorithm convergence as total variance
+    sigma.trace
+  end
+end
+
+class SNES < NES
+  # Separable NES
+  attr_reader :variances
+
+  def initialize_distribution
+    @mu = NMatrix.zeros([1, ndims], dtype: :float64)
+    @variances = NMatrix.ones([1,ndims], dtype: :float64)
+    @sigma = NMatrix.diagonal variances
+  end
+
+  def train
+    picks = sorted_inds
+    g_mu = utils.dot(picks)
+    g_sigma = utils.dot(picks**2 - 1)
+    @mu += sigma.dot(g_mu.transpose).transpose * lrate
+    @variances *= (g_sigma * lrate / 2).exponential
+    @sigma = NMatrix.diagonal variances
+  end
+
+  def convergence
+    # Estimate algorithm convergence as total variance
+    variances.reduce :+
   end
 end
