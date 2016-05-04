@@ -280,4 +280,20 @@ describe NES do
       end
     end
   end
+
+  describe SNES do
+    describe "full run" do
+      opt_type = opt_types.sample # try either :)
+      nes = SNES.new 5, obj_fns[opt_type], opt_type
+      ntimes = 200
+      context "within #{ntimes} iterations" do
+        it "optimizes the negative squares function" do
+          nes.run ntrain: 200, printevery: 20 #false # 50
+          assert nes.mu.all? { |v| v.approximates? 0 }
+          assert nes.convergence.approximates? 0
+        end
+      end
+    end
+  end
+
 end
