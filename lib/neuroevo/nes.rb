@@ -120,8 +120,10 @@ class XNES < NES
 
   def initialize_distribution
     @mu = NMatrix.new([1, ndims], 0, dtype: :float64)
-    @log_sigma = NMatrix.identity(ndims, dtype: :float64)
-    @sigma = log_sigma.exponential
+    @sigma = NMatrix.identity(ndims, dtype: :float64)
+    # XNES mostly works with the log of sigma to avoid continuous decompositions
+    # question: what is the matrix that, once exponentiated, yields identity?
+    @log_sigma = NMatrix.zeros(ndims, dtype: :float64)
   end
 
   def train
