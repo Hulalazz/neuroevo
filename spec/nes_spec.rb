@@ -1,37 +1,33 @@
 
-describe :nes do
-  describe :xnes do
+describe NES do
 
-    # Import Mathematica values
-    # Children don't try this at home
-    # eval File.open(File.join(File.dirname(__FILE__),'mathematica_data.rb').read
-
-
-
-    obj_fns = {
-      # MINIMIZATION: upper parabolic with minimum in [0]*ndims
-      :min => lambda do |inds|
-        inds.collect do |ind|
-          ind.inject(0) do |mem, var|
-            # mem + var**2
-            mem + var.abs
-          end
-        end
-      end,
-
-      # MAXIMIZATION: lower parabolic with maximum in [0]*ndims
-      :max => lambda do |inds|
-        inds.collect do |ind|
-          ind.inject(0) do |mem, var|
-            # mem - var**2
-            mem - var.abs
-          end
+  # Handy objective functions
+  obj_fns = {
+    # MINIMIZATION: upper parabolic with minimum in [0]*ndims
+    :min => lambda do |inds|
+      inds.collect do |ind|
+        ind.inject(0) do |mem, var|
+          # mem + var**2
+          mem + var.abs
         end
       end
-    }
-    opt_types=obj_fns.keys
+    end,
 
-    ndims = 5
+    # MAXIMIZATION: lower parabolic with maximum in [0]*ndims
+    :max => lambda do |inds|
+      inds.collect do |ind|
+        ind.inject(0) do |mem, var|
+          # mem - var**2
+          mem - var.abs
+        end
+      end
+    end
+  }
+  opt_types=obj_fns.keys
+
+  describe XNES do
+    # Mathematica values to check for exact correspondance
+    ndims = 5 # need it out since I reuse it in several places
     m = {
       #### Algorithm constants
       opt_type: :max,

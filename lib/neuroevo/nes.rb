@@ -4,9 +4,11 @@ require_relative 'monkey'
 # NOTE: objective function should take whole population as input.
 # This separates algorithm parallelization from evaluation parallelization.
 
+# Translated from Giuse's NES Mathematica library
+
 class NES
-  # Translated from Giuse's NES Mathematica library
   attr_reader :ndims, :mu, :log_sigma, :sigma, :opt_type, :obj_fn, :id, :rand
+  # Natural Evolution Strategies
 
   def initialize ndims, obj_fn, opt_type, seed: nil
     # ndims: number of parameters to optimize
@@ -132,6 +134,7 @@ class NES
 end
 
 class XNES < NES
+  # Exponential NES
   def train
     picks = sorted_inds
     g_mu = utils.dot(picks)
