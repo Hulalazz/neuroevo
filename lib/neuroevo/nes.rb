@@ -104,8 +104,12 @@ class NES
     NMatrix[*sorted_samples, dtype: :float64]
   end
 
-  def train
-    raise NotImplementedError, "Implement in child class!"
+  # @!method interface_methods
+  # Declaring interface methods - implement in child class!
+  [:train, :initialize_distribution, :convergence].each do |m|
+    define_method m do
+      raise NotImplementedError, "Implement in child class!"
+    end
   end
 
   # Main run method
@@ -115,12 +119,18 @@ class NES
   def run ntrain: 10, printevery: 1
     ## Set printevery to `false` to disable output printout
     if printevery # Pre-run print
-      puts "\n\n    NES training -- #{ntrain} iterations\n"
+      puts "\n\n    NES training -- #{ntrain} iterations -- printing every #{printevery} generations\n"
     end
     # Actual run
     ntrain.times do |i|
       if printevery and i==0 || (i+1)%printevery==0
-        puts "\n#{i+1}/#{ntrain}\n  mu (avg): #{mu.reduce(:+)/ndims}\n  conv: #{convergence}"
+        mu_fit = obj_fn.([mu]).first
+        puts %Q[
+          #{i+1}/#{ntrain}
+            mu (avg):    #{mu.reduce(:+)/ndims}
+            conv (avg) : #{convergence/ndims}
+            mu's fit:    #{mu_fit}
+        ].gsub /^        /, ''
       end
       train   #   <== actual training
     end
@@ -129,7 +139,6 @@ class NES
       puts "\n    Training complete"
     end
   end
-
 end
 
 class XNES < NES
