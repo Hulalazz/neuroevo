@@ -1,6 +1,6 @@
 engines:
-  bundler-audit:
-    enabled: true
+  # bundler-audit: # needs `Gemfile.lock`, but I am using `gemspec` :(
+  #   enabled: true
   rubocop:
     enabled: true
     #checks:
@@ -12,8 +12,8 @@ engines:
     #- 08c185b3f764f262539a1f76997d3a89
   eslint:
     enabled: true
-  csslint:
-    enabled: true
+  # csslint:
+  #   enabled: true
   duplication:
     enabled: true
     config:
@@ -27,6 +27,6 @@ ratings:
   - lib/**
   - "**.rb"
   # - "**.go"
-exclude_paths:
-- spec/**/*
+# exclude_paths:
+# - spec/**/*
 # - "**/vendor/**/*"
