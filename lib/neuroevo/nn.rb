@@ -3,25 +3,31 @@ require_relative 'monkey'
 
 # TODO: separate activation functions in class?
 
+# Parent class for neural network implementations
 class NN
   # Translated from Giuse's MLP Mathematica library
 
-  # layers: list of matrices, each being the weights connecting a
-  #    layer's inputs (rows) to a layer's neurons (columns), hence
-  #    its shape is [ninputs, nneurs]
-  # state: list of (one-dimensional) matrices, each (the output or) an
-  #   input to the next layer. This means each matrix is a concatenation
-  #   of previous-layer output (or inputs), possibly (recursion) this
-  #   layer last inputs, and bias (fixed `1`).
-  # act_fn: activation function, I guess the good ol' sigmoid will
-  #   do for starters
-  # struct: the structure of the network, how many (inputs or)
-  #   neurons in each layer, hence it's a list of integers
+  # @!attribute [r] layers
+  #   List of matrices, each being the weights
+  #   connecting a layer's inputs (rows) to a layer's neurons (columns),
+  #   hence its shape is `[ninputs, nneurs]`
+  #   @return [Array<NMatrix>] list of weight matrices, each uniquely describing a layer
+  # @!attribute [r] state
+  #   It's a list of one-dimensional matrices, each an input to a layer, plus the output layer's output. The first element is the input to the first layer of the network, which is composed of the network's input, possibly the first layer's activation on the last input (recursion), and a bias (fixed `1`). The second to but-last entries follow the same structure, but with the previous layer's output in place of the network's input. The last entry is the activation of the output layer, without additions since it's not used as an input by anyone.
+  #   @return [Array<NMatrix>] current state of the network.
+  # @!attribute [r] act_fn
+  #   activation function, common to all neurons (for now)
+  #   @return [#call] activation function
+  # @!attribute [r] struct
+  #   list of number of (inputs or) neurons in each layer
+  #   @return [Array<Integer>] structure of the network
   attr_reader :layers, :state, :act_fn, :struct
 
 
   ## Initialization
 
+  # @param struct [Array<Integer>] list of layer sizes
+  # @param act_fn [Symbol] choice of activation function for the neurons
   def initialize struct, act_fn: nil
     @struct = struct
     @act_fn = self.class.act_fn(act_fn || :sigmoid)
@@ -35,6 +41,7 @@ class NN
     reset_state
   end
 
+  # Reset the network to the initial state
   def reset_state
     @state.each do |m| # state has only single-row matrices
       # reset all to zero
@@ -44,6 +51,7 @@ class NN
     end
   end
 
+  # Initialize the network with random weights
   def init_random
     # Will only be used for testing, no sense optimizing it (NMatrix#rand)
     # Reusing #load_weights instead helps catching bugs
@@ -52,7 +60,7 @@ class NN
 
   ## Weight utilities
 
-  # method #deep_reset will be needed when playing with structure modification
+  # Resets memoization: needed to play with structure modification
   def deep_reset
     # reset memoization
     [:@layer_row_sizes, :@layer_col_sizes, :@nlayers, :@layer_shapes,
@@ -62,36 +70,62 @@ class NN
     reset_state
   end
 
+  # Total weights in the network
+  # @return [Integer] total number of weights
   def nweights
     @nweights ||= nweights_per_layer.reduce(:+)
   end
 
+  # List of per-layer number of weights
+  # @return [Array<Integer>] list of weights per each layer
   def nweights_per_layer
     @nweights_per_layer ||= layer_shapes.collect { |shape| shape.reduce(:*) }
   end
 
+  # Count the layers. This is a computation helper, and for this implementation
+  # the inputs are considered as if a layer like the others.
+  # @return [Integer] number of layers
   def nlayers
     @nlayers ||= layer_shapes.size
   end
 
+  # Returns the weight matrix
+  # @return [Array] three-dimensional Array of weights: a list of weight
+  #   matrices, one for each layer.
   def weights
     layers.collect &:true_to_a
   end
 
-  def layer_col_sizes # number of neurons per layer (excludes input)
+  # Number of neurons per layer. Although this implementation includes inputs
+  # in the layer counts, this methods correctly ignores the input as not having
+  # neurons.
+  # @return [Array] list of neurons per each (proper) layer (i.e. no inputs)
+  def layer_col_sizes
     @layer_col_sizes ||= struct.drop(1)
   end
 
   # define #layer_row_sizes in child class: number of inputs per layer
 
+  # Shapes for the weight matrices, each corresponding to a layer
+  # @return [Array<Array[Integer, Integer]>] Weight matrix shapes
   def layer_shapes
     @layer_shapes ||= layer_row_sizes.zip layer_col_sizes
   end
 
+  # Count the neurons in a particular layer or in the whole network.
+  # @param nlay [Integer, nil] the layer of interest, 1-indexed.
+  #   `0` will return the number of inputs.
+  #   `nil` will compute the total neurons in the network.
+  # @return [Integer] the number of neurons in a given layer, or in all network, or the number of inputs
   def nneurs nlay=nil
     nlay.nil? ? struct.reduce(:+) : struct[nlay]
   end
 
+  # Loads a plain list of weights into the weight matrices (one per layer).
+  # Preserves order.
+  # @input weights [Array<Float>] weights to load
+  # @return [true] always true. If something's wrong it simply fails, and if
+  #   all goes well there's nothing to return but a confirmation to the caller.
   def load_weights weights
     raise "Hell!" unless weights.size == nweights
     weights_iter = weights.each
@@ -105,10 +139,14 @@ class NN
 
   ## Activation
 
+  # The "fixed `1`" used in the layer's input
   def bias
     @bias ||= NMatrix[[1], dtype: :float64]
   end
 
+  # Activate the network on a given input
+  # @param input [Array<Float>] the given input
+  # @return [Array] the activation of the output layer
   def activate input
     raise "Hell!" unless input.size == struct.first
     raise "Hell!" unless input.is_a? Array
@@ -122,15 +160,18 @@ class NN
     return out
   end
 
+  # Extract and convert the output layer's activation
+  # @return [Array] the activation of the output layer as 1-dim Array
   def out
-    state.last.to_flat_a # activation of output layer (as 1-dim Array)
+    state.last.to_flat_a
   end
 
   # define #activate_layer in child class
 
-
   ## Activation functions
 
+  # Activation function caller. Allows to cleanly define the activation function as one-dimensional, by calling it over the inputs and building a NMatrix to return.
+  # @return [NMatrix] activations for one layer
   def self.act_fn type, *args
     fn = send(type,*args)
     lambda do |inputs|
@@ -141,12 +182,14 @@ class NN
     end
   end
 
+  # Traditional sigmoid with variable steepness
   def self.sigmoid k=0.5
     # k is steepness:  0<k<1 is flatter, 1<k is flatter
     # flatter makes activation less sensitive, better with large number of inputs
     lambda { |x| 1.0 / (Math.exp(-k * x) + 1.0) }
   end
 
+  # Traditional logistic
   def self.logistic
     lambda { |x|
       exp = Math.exp(x)
@@ -154,14 +197,15 @@ class NN
     }
   end
 
+  # LeCun hyperbolic activation
+  # @see http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf Section 4.4
   def self.lecun_hyperbolic
-    # http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf -- Section 4.4
     lambda { |x| 1.7159 * Math.tanh(2.0*x/3.0) + 1e-3*x }
   end
 
 
-  ## Interface to implement in child class
-
+  # @!method interface_methods
+  # Declaring interface methods - implement in child class!
   [:layer_row_sizes, :activate_layer].each do |sym|
     define_method sym do |*args|
       raise NotImplementedError, "Implement ##{sym} in child class!"
@@ -170,14 +214,18 @@ class NN
 end
 
 
+# Feed Forward Neural Network
 class FFNN < NN
-  # Feed Forward Neural Network
 
+  # Calculate the size of each row in a layer's weight matrix.
+  # Includes inputs (or previous-layer activations) and bias.
+  # @return [Array<Integer>] per-layer row sizes
   def layer_row_sizes
-    # inputs (or previous-layer activations) and bias
     @layer_row_sizes ||= struct.each_cons(2).collect {|prev, curr| prev+1}
   end
 
+  # Activates a layer of the network
+  # @param i [Integer] the layer to activate, zero-indexed
   def activate_layer i
     act_fn.call( state[i].dot layers[i] )
   end
@@ -185,18 +233,24 @@ class FFNN < NN
 end
 
 
+# Recurrent Neural Network
 class RNN < NN
-  # Recurrent Neural Network
 
+  # Calculate the size of each row in a layer's weight matrix.
+  # Each row holds the inputs for the next level: previous level's
+  # activations (or inputs), this level's last activations
+  # (recursion) and bias.
+  # @return [Array<Integer>] per-layer row sizes
   def layer_row_sizes
-    # each row holds the inputs for the next level: previous level's
-    # activations (or inputs), this level's last activations
-    # (recursion) and bias
     @layer_row_sizes ||= struct.each_cons(2).collect do |prev, rec|
       prev + rec +1
     end
   end
 
+  # Activates a layer of the network.
+  # Bit more complex since it has to copy the layer's activation on
+  # last input to its own inputs, for recursion.
+  # @param i [Integer] the layer to activate, zero-indexed
   def activate_layer nlay #_layer
     # NOTE: current layer index corresponds to index of next state!
     previous = nlay     # index of previous layer (inputs)

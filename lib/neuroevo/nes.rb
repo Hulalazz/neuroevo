@@ -10,11 +10,12 @@ class NES
   # Natural Evolution Strategies
   attr_reader :ndims, :mu, :sigma, :opt_type, :obj_fn, :id, :rand
 
+  # NES object initialization
+  # @param ndims [Integer] number of parameters to optimize
+  # @param obj_fn [#call] any object defining a #call method (Proc, lambda, custom class)
+  # @param opt_type [:min, :max] select minimization / maximization of obj_fn
+  # @param seed [Integer] allow for deterministic execution on seed provided
   def initialize ndims, obj_fn, opt_type, seed: nil
-    # ndims: number of parameters to optimize
-    # obj_fn: any object defining a #call method (Proc, lambda, custom class)
-    # opt_type: :min or :max, for minimization / maximization of obj_fn
-    # seed: allow for deterministic execution on seed provided
     raise "Hell!" unless [:min, :max].include? opt_type
     raise "Hell!" unless obj_fn.respond_to? :call
     @ndims, @opt_type, @obj_fn = ndims, opt_type, obj_fn
@@ -23,19 +24,25 @@ class NES
     initialize_distribution
   end
 
-  # Box-Muller transform: generates unit normal distribution samples
-  def unit_normal_sample
+  # Box-Muller transform: generates standard (unit) normal distribution samples
+  # @return [Float] a single sample from a standard normal distribution
+  def standard_normal_sample
     rho = Math.sqrt(-2.0 * Math.log(rand.rand))
     theta = 2 * Math::PI * rand.rand
     tfn = rand.rand > 0.5 ? :cos : :sin
     rho * Math.send(tfn, theta)
   end
 
-  # Doubling popsize and halving lrate often helps
+  # Memoized automatic magic numbers
+  # NOTE: Doubling popsize and halving lrate often helps
   def utils;   @utilities ||= hansen_utilities   end
+  # (see #utils)
   def popsize; @popsize   ||= hansen_popsize * 2 end
+  # (see #utils)
   def lrate;   @lrate     ||= hansen_lrate       end
 
+  # Magic numbers from CMA-ES (TODO: add proper citation)
+  # @return [NMatrix] scale-invariant utilities
   def hansen_utilities
     # Algorithm equations are meant for fitness maximization
     # Match utilities with individuals sorted by INCREASING fitness
@@ -48,30 +55,39 @@ class NES
     NMatrix[vals, dtype: :float64]
   end
 
+  # (see #hansen_utilities)
+  # @return [Float] learning rate lower bound
   def hansen_lrate
     (3+Math.log(ndims)) / (5*Math.sqrt(ndims))
   end
 
+  # (see #hansen_utilities)
+  # @return [Integer] population size lower bound
   def hansen_popsize
     [5, 4 + (3*Math.log(ndims)).floor].max
   end
 
+  # Samples a standard normal distribution to construct a NMatrix of
+  #   popsize multivariate samples of length ndims
+  # @return [NMatrix] standard normal samples
   def standard_normal_samples
-    NMatrix.build([popsize,ndims], dtype: :float64) {unit_normal_sample}
+    NMatrix.build([popsize,ndims], dtype: :float64) {standard_normal_sample}
   end
 
+  # Move standard normal samples to current distribution
+  # @return [NMatrix] individuals
   def move_inds inds
     # TODO: can we get rid of double transpose?
     # sigma.dot(inds.transpose).map(&mu.method(:+)).transpose
-
     multi_mu = NMatrix[*inds.rows.times.collect {mu.to_a}, dtype: :float64].transpose
     (multi_mu + sigma.dot(inds.transpose)).transpose
-
     # sigma.dot(inds.transpose).transpose + inds.rows.times.collect {mu.to_a}.to_nm
   end
 
-  # TODO: refactor this, it's THIS open for easier debugging
+  # Sorted individuals
+  # @return standard normal samples sorted by the respective individuals' fitnesses
   def sorted_inds
+    # TODO: refactor this, it's THIS open for easier debugging
     # Algorithm equations are meant for fitness maximization
     # Utilities need to be matched with individuals sorted by
     # INCREASING fitness -- reverse order for minimization
@@ -88,30 +104,41 @@ class NES
     NMatrix[*sorted_samples, dtype: :float64]
   end
 
-  def train
-    raise NotImplementedError, "Implement in child class!"
+  # @!method interface_methods
+  # Declaring interface methods - implement in child class!
+  [:train, :initialize_distribution, :convergence].each do |m|
+    define_method m do
+      raise NotImplementedError, "Implement in child class!"
+    end
   end
 
+  # Main run method
+  # @param ntrain [Integer] number of generations to train for
+  # @printevery [Integer, nil] number of generations between printouts.
+  #   Set to nil to disable printing.
   def run ntrain: 10, printevery: 1
     ## Set printevery to `false` to disable output printout
     if printevery # Pre-run print
-      puts "\n\n    NES training -- #{ntrain} iterations\n"
+      puts "\n\n    NES training -- #{ntrain} iterations -- printing every #{printevery} generations\n"
     end
     # Actual run
     ntrain.times do |i|
       if printevery and i==0 || (i+1)%printevery==0
-        puts "\n#{i+1}/#{ntrain}\n  mu:   #{mu}\n  conv: #{convergence}"
+        mu_fit = obj_fn.([mu]).first
+        puts %Q[
+          #{i+1}/#{ntrain}
+            mu (avg):    #{mu.reduce(:+)/ndims}
+            conv (avg) : #{convergence/ndims}
+            mu's fit:    #{mu_fit}
+        ].gsub /^        /, ''
       end
       train   #   <== actual training
     end
     # End-of-run print
     if printevery
       puts "\n    Training complete"
-      puts "    mu (avg): #{mu.reduce(:+)/ndims}"
-      puts "    convergence: #{convergence}"
     end
   end
-
 end
 
 class XNES < NES

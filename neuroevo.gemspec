@@ -5,12 +5,32 @@ Gem::Specification.new do |s|
   s.name          = 'neuroevo'
   s.version       = v_from_branch || v_from_tag || raise("Missing version")
   s.platform      = Gem::Platform::RUBY
-  s.date          = '2016-04-29'
+  s.date          = Date.today.strftime "%Y-%m-%d"
   s.author        = 'Giuseppe Cuccu'
   s.email         = 'giuseppe.cuccu@gmail.com'
-  s.summary       = "Porting of my old neuroevolution research code to Ruby."
-  s.description   = "This is code I'm working on, I'm creating a gem just to easily import it in a larger framework. It's not intended for distribution as of now, but you're welcome to play with it :)"
-  s.homepage      = 'https://www.github.com/giuseppecuccu/neuroevo'
+  s.summary       = "Porting my neuroevolution research code to Ruby."
+  s.description   = %Q[
+This is code I'm working on, I'm creating a gem just to easily import it in
+a larger framework. It's not intended for distribution as of now, but you're
+welcome to play with it :)
+
+UPDATE: This gem is slowly growing into something other people may find
+      useful. Version 0.1.6 introduces even documentation! :P
+      It's also ever slowly diverging into three largely independent
+      projects: a neural network implementation, a black box
+      optimizer, and a linear algebra support library. To these I'll
+      soon add a definition of "experiment" (not actual name), to
+      keep the ecosystem together.
+
+      I am beginning to think this could be useful to any business
+      with big data managed by Rails. Well, I am managing my work
+      data in a Rails environment, so I get for free browser views
+      and database interface, among others.
+
+      Let's see where this thing gets us :)
+]
+
+  s.homepage      = 'https://github.com/giuse/neuroevo'
   s.license       = 'MIT'
   s.post_install_message = <<-EOF
 ************************************************************************
@@ -26,6 +46,7 @@ That said, if you'd like to make my code your own, you'll find me most
 enthusiast :)
 
 Thanks!
+
 EOF
 
   s.rubyforge_project = "neuroevo" # required for validation
@@ -48,6 +69,7 @@ EOF
   s.add_development_dependency 'pry-nav', '~> 0.2'
   s.add_development_dependency 'pry-rescue', '~> 1.4'
   s.add_development_dependency 'pry-stack_explorer', '~> 0.4'
+  s.add_development_dependency 'descriptive_statistics', '~> 2.5'
 
   # Run
   s.add_runtime_dependency 'nmatrix', '~> 0.2'
