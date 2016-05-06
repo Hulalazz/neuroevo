@@ -1,8 +1,8 @@
-# [Neuroevo](https://github.com/giuseppecuccu/neuroevo)
+# [Neuroevo](https://github.com/giuse/neuroevo)
 
 [![Gem Version](https://badge.fury.io/rb/neuroevo.svg)](https://badge.fury.io/rb/neuroevo)
-[![Build Status](https://travis-ci.org/giuseppecuccu/neuroevo.svg?branch=master)](https://travis-ci.org/giuseppecuccu/neuroevo)
-[![Code Climate](https://codeclimate.com/github/giuseppecuccu/neuroevo/badges/gpa.svg)](https://codeclimate.com/github/giuseppecuccu/neuroevo)
+[![Build Status](https://travis-ci.org/giuse/neuroevo.svg?branch=master)](https://travis-ci.org/giuse/neuroevo)
+[![Code Climate](https://codeclimate.com/github/giuse/neuroevo/badges/gpa.svg)](https://codeclimate.com/github/giuse/neuroevo)
 
 
 This is just working code from me to me. I am not producing community-quality

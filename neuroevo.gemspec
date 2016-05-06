@@ -30,7 +30,7 @@ UPDATE: This gem is slowly growing into something other people may find
       Let's see where this thing gets us :)
 ]
 
-  s.homepage      = 'https://github.com/giuseppecuccu/neuroevo'
+  s.homepage      = 'https://github.com/giuse/neuroevo'
   s.license       = 'MIT'
   s.post_install_message = <<-EOF
 ************************************************************************
