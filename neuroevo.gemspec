@@ -69,6 +69,7 @@ EOF
   s.add_development_dependency 'pry-nav', '~> 0.2'
   s.add_development_dependency 'pry-rescue', '~> 1.4'
   s.add_development_dependency 'pry-stack_explorer', '~> 0.4'
+  s.add_development_dependency 'descriptive_statistics', '~> 2.5'
 
   # Run
   s.add_runtime_dependency 'nmatrix', '~> 0.2'
