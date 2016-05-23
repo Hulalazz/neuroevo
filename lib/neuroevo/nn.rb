@@ -55,7 +55,7 @@ class NN
   def init_random
     # Will only be used for testing, no sense optimizing it (NMatrix#rand)
     # Reusing #load_weights instead helps catching bugs
-    load_weights nweights.times.collect { rand -1.0..1.0 }
+    load_weights nweights.times.collect { rand(-1.0..1.0) }
   end
 
   ## Weight utilities
@@ -93,7 +93,7 @@ class NN
   # @return [Array] three-dimensional Array of weights: a list of weight
   #   matrices, one for each layer.
   def weights
-    layers.collect &:true_to_a
+    layers.collect(&:true_to_a)
   end
 
   # Number of neurons per layer. Although this implementation includes inputs
@@ -207,7 +207,7 @@ class NN
   # @!method interface_methods
   # Declaring interface methods - implement in child class!
   [:layer_row_sizes, :activate_layer].each do |sym|
-    define_method sym do |*args|
+    define_method sym do
       raise NotImplementedError, "Implement ##{sym} in child class!"
     end
   end
@@ -221,7 +221,7 @@ class FFNN < NN
   # Includes inputs (or previous-layer activations) and bias.
   # @return [Array<Integer>] per-layer row sizes
   def layer_row_sizes
-    @layer_row_sizes ||= struct.each_cons(2).collect {|prev, curr| prev+1}
+    @layer_row_sizes ||= struct.each_cons(2).collect {|prev, _curr| prev+1}
   end
 
   # Activates a layer of the network
