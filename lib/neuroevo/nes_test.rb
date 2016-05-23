@@ -39,7 +39,7 @@ if __FILE__ == $0
 
   puts "  mu (avg): #{nes.mu.reduce(:+)/nes.ndims}"
   puts "  convergence: #{nes.convergence}"
-  require 'pry'; binding.pry
+  # require 'pry'; binding.pry
 
 
 end

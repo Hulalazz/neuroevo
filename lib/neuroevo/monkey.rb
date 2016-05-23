@@ -76,7 +76,7 @@ class NMatrix
   # (see #set_diag!)
   # Non-destructive version.
   def set_diag &block
-    self.clone.set_diag! &block
+    self.clone.set_diag!(&block)
   end
 
   # Outer matrix relationship generalization.
@@ -138,7 +138,7 @@ class NMatrix
       # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
       values, _, vectors = eigen
       e_vecs_inv = vectors.invert
-      diag_e_vals_exp = NMatrix.diagonal values.collect &Math.method(:exp)
+      diag_e_vals_exp = NMatrix.diagonal values.collect(&Math.method(:exp))
       vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
     end
   end
@@ -210,7 +210,7 @@ class NMatrix
   def reshape *args
     @size = nil
     @shape = nil
-    old_reshape *args
+    old_reshape(*args)
   end
 
 end
