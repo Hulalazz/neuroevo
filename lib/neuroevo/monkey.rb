@@ -120,12 +120,15 @@ class NMatrix
   end
 
   # Calculate matrix eigenvalues and eigenvectors using LAPACK
-  # @return [Array<NMatrix, NMatrix, NMatrix>]
-  #   eigenvalues (as column vector), left eigenvectors, right eigenvectors
+  # @param which [:both, :left, :right] which eigenvectors do you want?
+  # @return [Array<NMatrix, NMatrix[, NMatrix]>]
+  #   eigenvalues (as column vector), left eigenvectors, right eigenvectors.
+  #   A value different than `:both` for param `which` reduces the return size.
   # @note requires LAPACK
+  # @note WARNING! a param `which` different than :both alters the returns
   # @note WARNING! machine-precision-error imaginary part Complex
   # often returned! For symmetric matrices use #eigen_symm_right below
-  def eigen which: :both
+  def eigen which=:both
     NMatrix::LAPACK.geev(self, which)
   end
 
@@ -181,13 +184,15 @@ class NMatrix
 
     # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
     # e_values, e_vectors = eigen_symm
-    e_values, _, e_vectors = eigen
+    e_values, e_vectors = eigen(:right)
     e_vals_exp_dmat = NMatrix.diagonal e_values.collect(&Math.method(:exp))
+    # ASSUMING WE'RE ONLY USING THIS TO EXPONENTIATE LOG_SIGMA IN XNES
     # Theoretically we need the right eigenvectors, which for a symmetric
-    # matrix require transposing the left eigenvectors.
+    # matrix should be just transposes of the eigenvectors.
     # But we have a positive definite matrix, so the final composition
     # below holds without transposing
-    # BUT, strangely, without transposition it fails the specs for #exponential
+    # BUT, strangely, I can't seem to get eigen_symm to green the tests
+    # ...with or without transpose
     # e_vectors = e_vectors.transpose
     e_vectors.dot(e_vals_exp_dmat).dot(e_vectors.invert)
   end
