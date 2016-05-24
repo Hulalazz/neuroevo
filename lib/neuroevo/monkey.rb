@@ -134,9 +134,9 @@ class NMatrix
   # @note code taken from gem `nmatrix-atlas` NMatrix::LAPACK#geev
   # @note FOR SYMMETRIC MATRICES ONLY!!
   # @note WARNING: will return real matrices, imaginary parts are discarded!
-  # @note WARNING: only right eigenvectors will be returned!
-  # @return [Array<NMatrix, NMatrix>] eigenvalues and (right) eigenvectors
-  def eigen_symm_right
+  # @note WARNING: only left eigenvectors will be returned!
+  # @return [Array<NMatrix, NMatrix>] eigenvalues and (left) eigenvectors
+  def eigen_symm
     # TODO: check for symmetry if not too slow
     raise(TypeError, "#eigen_symm_right only works on real-valued matrices") if complex_dtype?
     raise(StorageTypeError, "LAPACK functions only work on dense matrices") unless dense?
@@ -146,29 +146,29 @@ class NMatrix
 
     # Outputs
     eigenvalues = NMatrix.new([n, 1], dtype: dtype)
-    imag_eigenvalues = nil#NMatrix.new([n, 1], dtype: dtype)
-    right_eigenvectors = NMatrix.new(shape, dtype: dtype)
+    eigenvectors = NMatrix.new(shape, dtype: dtype)
+    eigenv_imag = NMatrix.new([n, 1], dtype: dtype) # just to satisfy C alloc
 
     # In symmetric matrices, m.transpose == m, so we don't need to
     # transpose back and forth between NMatrix row-first and LAPACK
     # column-first storages
 
     NMatrix::LAPACK::lapack_geev(
-      false,       # compute left eigenvectors of A?
-      :t,          # compute right eigenvectors of A? (left eigenvectorsof A**T)
-      n,           # order of the matrix
-      self,        # input matrix (used as work)
-      n,           # leading dimension of matrix
-      eigenvalues, # real part of computed eigenvalues
-      imag_eigenvalues, # imag part of computed eigenvalues
-      nil,         # left eigenvectors, if applicable
-      n,           # leading dimension of left_output
-      right_eigenvectors, # right eigenvectors, if applicable
-      n,     # leading dimension of right_eigenvectors
-      2*n    # no clue what's this
+      :t,           # compute left eigenvectors of A?
+      false,        # compute right eigenvectors of A? (left eigenvectorsof A**T)
+      n,            # order of the matrix
+      self,         # input matrix
+      n,            # leading dimension of matrix
+      eigenvalues,  # real part of computed eigenvalues
+      eigenv_imag,  # imag part of computed eigenvalues (disposable)
+      eigenvectors, # left eigenvectors
+      n,            # leading dimension of left_output
+      nil,          # right eigenvectors, if applicable
+      n,            # leading dimension of right_eigenvectors
+      2*n           # no clue what's this
     )
 
-    return [eigenvalues, right_eigenvectors]
+    return [eigenvalues, eigenvectors]
   end
 
   # Matrix exponential: `e^self` (not to be confused with `self^n`!)
@@ -181,10 +181,16 @@ class NMatrix
     end
 
     # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
-    values, vectors = eigen_symm_right
-    e_vecs_inv = vectors.invert
-    diag_e_vals_exp = NMatrix.diagonal values.collect(&Math.method(:exp))
-    vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
+    # e_values, e_vectors = eigen_symm
+    e_values, _, e_vectors = eigen
+    e_vals_exp_dmat = NMatrix.diagonal e_values.collect(&Math.method(:exp))
+    # Theoretically we need the right eigenvectors, which for a symmetric
+    # matrix require transposing the left eigenvectors.
+    # But we have a positive definite matrix, so the final composition
+    # below holds without transposing
+    # BUT, strangely, without transposition it fails the specs for #exponential
+    # e_vectors = e_vectors.transpose
+    e_vectors.dot(e_vals_exp_dmat).dot(e_vectors.invert)
   end
 
   # Small testing helper. Verifies if all corresponding values between `self`
