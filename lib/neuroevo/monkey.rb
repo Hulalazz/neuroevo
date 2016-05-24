@@ -123,24 +123,68 @@ class NMatrix
   # @return [Array<NMatrix, NMatrix, NMatrix>]
   #   eigenvalues (as column vector), left eigenvectors, right eigenvectors
   # @note requires LAPACK
+  # @note WARNING! machine-precision-error imaginary part Complex
+  # often returned! For symmetric matrices use #eigen_symm_right below
   def eigen
     NMatrix::LAPACK.geev(
       self.float_dtype? ? self : self.cast(dtype: :float64))
   end
 
+  # Eigenvalues and right eigenvectors using LAPACK
+  # @note code taken from gem `nmatrix-atlas` NMatrix::LAPACK#geev
+  # @note FOR SYMMETRIC MATRICES ONLY!!
+  # @note WARNING: will return real matrices, imaginary parts are discarded!
+  # @note WARNING: only right eigenvectors will be returned!
+  # @return [Array<NMatrix, NMatrix>] eigenvalues and (right) eigenvectors
+  def eigen_symm_right
+    # TODO: check for symmetry if not too slow
+    raise(TypeError, "#eigen_symm_right only works on real-valued matrices") if complex_dtype?
+    raise(StorageTypeError, "LAPACK functions only work on dense matrices") unless dense?
+    raise(ShapeError, "eigenvalues can only be computed for square matrices") unless dim == 2 && shape[0] == shape[1]
+
+    n = shape[0]
+
+    # Outputs
+    eigenvalues = NMatrix.new([n, 1], dtype: dtype)
+    imag_eigenvalues = nil#NMatrix.new([n, 1], dtype: dtype)
+    right_eigenvectors = NMatrix.new(shape, dtype: dtype)
+
+    # In symmetric matrices, m.transpose == m, so we don't need to
+    # transpose back and forth between NMatrix row-first and LAPACK
+    # column-first storages
+
+    NMatrix::LAPACK::lapack_geev(
+      false,       # compute left eigenvectors of A?
+      :t,          # compute right eigenvectors of A? (left eigenvectorsof A**T)
+      n,           # order of the matrix
+      self,        # input matrix (used as work)
+      n,           # leading dimension of matrix
+      eigenvalues, # real part of computed eigenvalues
+      imag_eigenvalues, # imag part of computed eigenvalues
+      nil,         # left eigenvectors, if applicable
+      n,           # leading dimension of left_output
+      right_eigenvectors, # right eigenvectors, if applicable
+      n,     # leading dimension of right_eigenvectors
+      2*n    # no clue what's this
+    )
+
+    return [eigenvalues, right_eigenvectors]
+  end
+
   # Matrix exponential: `e^self` (not to be confused with `self^n`!)
   # @return [NMatrix]
   def exponential
-    # special cases: one-dimensional matrix: just exponentiate the values
-    if self.dim == 1 or self.dim == 2 && self.shape.include?(1)
-      NMatrix.new self.shape, self.collect(&Math.method(:exp))
-    else
-      # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
-      values, _, vectors = eigen
-      e_vecs_inv = vectors.invert
-      diag_e_vals_exp = NMatrix.diagonal values.collect(&Math.method(:exp))
-      vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
+    # special case: one-dimensional matrix: just exponentiate the values
+    # TODO: test this!
+    if (dim == 1) || (dim == 2 && shape.include?(1))
+      return NMatrix.new shape, collect(&Math.method(:exp))
     end
+
+    # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
+    values, vectors = eigen_symm_right
+    e_vecs_inv = vectors.invert
+    diag_e_vals_exp = NMatrix.diagonal values.collect(&Math.method(:exp))
+    vectors.dot(diag_e_vals_exp).dot(e_vecs_inv)
   end
 
   # Small testing helper. Verifies if all corresponding values between `self`
