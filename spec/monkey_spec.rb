@@ -18,7 +18,7 @@ describe :monkey do
 
   describe NMatrix do
     data = [[1,2,3],[4,5,6],[7,8,9]]
-    nmat = NMatrix[*data]
+    nmat = NMatrix[*data, dtype: :float64]
     diag = [1,5,9]
 
     it "::build" do

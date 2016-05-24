@@ -125,9 +125,8 @@ class NMatrix
   # @note requires LAPACK
   # @note WARNING! machine-precision-error imaginary part Complex
   # often returned! For symmetric matrices use #eigen_symm_right below
-  def eigen
-    NMatrix::LAPACK.geev(
-      self.float_dtype? ? self : self.cast(dtype: :float64))
+  def eigen which: :both
+    NMatrix::LAPACK.geev(self, which)
   end
 
   # Eigenvalues and right eigenvectors using LAPACK

@@ -180,7 +180,7 @@ class SNES < NES
   def initialize_distribution
     @mu = NMatrix.zeros([1, ndims], dtype: :float64)
     @variances = NMatrix.ones([1,ndims], dtype: :float64)
-    @sigma = NMatrix.diagonal variances
+    @sigma = NMatrix.diagonal(variances, dtype: :float64)
   end
 
   def train
@@ -189,7 +189,7 @@ class SNES < NES
     g_sigma = utils.dot(picks**2 - 1)
     @mu += sigma.dot(g_mu.transpose).transpose * lrate
     @variances *= (g_sigma * lrate / 2).exponential
-    @sigma = NMatrix.diagonal variances
+    @sigma = NMatrix.diagonal(variances, dtype: :float64)
   end
 
   def convergence
