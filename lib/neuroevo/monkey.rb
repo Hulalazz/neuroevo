@@ -131,7 +131,6 @@ class NMatrix
   def eigen which=:both
     NMatrix::LAPACK.geev(self, which)
   end
-
   # Eigenvalues and right eigenvectors using LAPACK
   # @note code taken from gem `nmatrix-atlas` NMatrix::LAPACK#geev
   # @note FOR SYMMETRIC MATRICES ONLY!!
@@ -140,37 +139,44 @@ class NMatrix
   # @return [Array<NMatrix, NMatrix>] eigenvalues and (left) eigenvectors
   def eigen_symm
     # TODO: check for symmetry if not too slow
-    raise(TypeError, "#eigen_symm_right only works on real-valued matrices") if complex_dtype?
+    raise(TypeError, "#eigen_symm only works on real-valued matrices") if complex_dtype?
     raise(StorageTypeError, "LAPACK functions only work on dense matrices") unless dense?
     raise(ShapeError, "eigenvalues can only be computed for square matrices") unless dim == 2 && shape[0] == shape[1]
 
     n = shape[0]
 
     # Outputs
-    eigenvalues = NMatrix.new([n, 1], dtype: dtype)
-    eigenvectors = NMatrix.new(shape, dtype: dtype)
-    eigenv_imag = NMatrix.new([n, 1], dtype: dtype) # just to satisfy C alloc
+    e_values = NMatrix.new([n, 1], dtype: dtype)
+    e_values_img = NMatrix.new([n, 1], dtype: dtype) # just to satisfy C alloc
+    e_vectors = clone_structure
 
+
+    # TODO: this should be right!! why doesn't it work??
     # In symmetric matrices, m.transpose == m, so we don't need to
     # transpose back and forth between NMatrix row-first and LAPACK
     # column-first storages
+    # TODO: verify left eigenvector is right transposed
 
     NMatrix::LAPACK::lapack_geev(
-      :t,           # compute left eigenvectors of A?
-      false,        # compute right eigenvectors of A? (left eigenvectorsof A**T)
+      false,        # compute left eigenvectors of A?
+      :t,           # compute right eigenvectors of A? (left eigenvectors of A**T)
       n,            # order of the matrix
-      self,         # input matrix
+      # self,         # input matrix
+      transpose,    # input matrix
       n,            # leading dimension of matrix
-      eigenvalues,  # real part of computed eigenvalues
-      eigenv_imag,  # imag part of computed eigenvalues (disposable)
-      eigenvectors, # left eigenvectors
+      e_values,     # real part of computed eigenvalues
+      e_values_img, # imag part of computed eigenvalues
+      nil,          # left eigenvectors, if applicable
       n,            # leading dimension of left_output
-      nil,          # right eigenvectors, if applicable
-      n,            # leading dimension of right_eigenvectors
+      e_vectors,    # right eigenvectors, if applicable
+      n,            # leading dimension of right_output
       2*n           # no clue what's this
     )
 
-    return [eigenvalues, eigenvectors]
+    raise "Complex Hell!" if e_values_img.any? {|v| v>1e-10}
+
+    # return [e_values, e_vectors]
+    return [e_values, e_vectors.transpose]
   end
 
   # Matrix exponential: `e^self` (not to be confused with `self^n`!)
@@ -183,8 +189,10 @@ class NMatrix
     end
 
     # Eigenvalue decomposition method from scipy/linalg/matfuncs.py#expm2
-    # e_values, e_vectors = eigen_symm
-    e_values, e_vectors = eigen(:right)
+
+    # TODO: find out why can't I get away without double transpose!
+    e_values, e_vectors = eigen_symm
+
     e_vals_exp_dmat = NMatrix.diagonal e_values.collect(&Math.method(:exp))
     # ASSUMING WE'RE ONLY USING THIS TO EXPONENTIATE LOG_SIGMA IN XNES
     # Theoretically we need the right eigenvectors, which for a symmetric
@@ -194,7 +202,7 @@ class NMatrix
     # BUT, strangely, I can't seem to get eigen_symm to green the tests
     # ...with or without transpose
     # e_vectors = e_vectors.transpose
-    e_vectors.dot(e_vals_exp_dmat).dot(e_vectors.invert)
+    e_vectors.dot(e_vals_exp_dmat).dot(e_vectors.invert)#.transpose
   end
 
   # Small testing helper. Verifies if all corresponding values between `self`
