@@ -336,6 +336,19 @@ describe NES do
         end
       end
     end
+
+    describe "resuming" do
+      it "#dump and #load" do
+        opt_type = m[:opt_type]
+        nes1 = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
+        nes1.run ntrain: 3, printevery: false
+        savedata1 = nes1.dump
+        nes2 = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 2
+        nes2.load savedata1
+        savedata2 = nes2.dump
+        assert savedata1 == savedata2
+      end
+    end
   end
 
 end

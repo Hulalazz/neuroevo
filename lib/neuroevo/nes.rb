@@ -214,4 +214,16 @@ class SNES < NES
     # Estimate algorithm convergence as total variance
     variances.reduce :+
   end
+
+  def dump
+    [mu.true_to_a, variances.true_to_a]
+  end
+
+  def load data
+    raise "Hell!" unless data.size == 2
+    mu_ary, variances_ary = data
+    @mu = NMatrix[*mu_ary, dtype: :float64]
+    @variances = NMatrix[*variances_ary, dtype: :float64]
+    @sigma = NMatrix.diagonal(variances, dtype: :float64)
+  end
 end
