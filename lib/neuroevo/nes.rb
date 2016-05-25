@@ -94,7 +94,7 @@ class NES
     samples = standard_normal_samples
     inds = move_inds(samples).to_a
     fits = obj_fn.(inds)
-    # quick cure for fitness NaNs
+    # HACK: quick cure for fitness NaNs
     fits.map!{ |x| x.nan? ? (opt_type==:max ? -1 : 1) * Float::INFINITY : x }
     fits_by_sample = samples.to_a.zip(fits).to_h
     # http://ruby-doc.org/core-2.2.0/Enumerable.html#method-i-sort_by
@@ -130,7 +130,7 @@ class NES
             mu (avg):    #{mu.reduce(:+)/ndims}
             conv (avg) : #{convergence/ndims}
             mu's fit:    #{mu_fit}
-        ].gsub /^        /, ''
+        ].gsub(/^        /, '')
       end
       train   #   <== actual training
     end
@@ -180,7 +180,7 @@ class SNES < NES
   def initialize_distribution
     @mu = NMatrix.zeros([1, ndims], dtype: :float64)
     @variances = NMatrix.ones([1,ndims], dtype: :float64)
-    @sigma = NMatrix.diagonal variances
+    @sigma = NMatrix.diagonal(variances, dtype: :float64)
   end
 
   def train
@@ -189,7 +189,7 @@ class SNES < NES
     g_sigma = utils.dot(picks**2 - 1)
     @mu += sigma.dot(g_mu.transpose).transpose * lrate
     @variances *= (g_sigma * lrate / 2).exponential
-    @sigma = NMatrix.diagonal variances
+    @sigma = NMatrix.diagonal(variances, dtype: :float64)
   end
 
   def convergence

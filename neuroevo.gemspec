@@ -1,9 +1,7 @@
 
-v_from_branch = `git rev-parse --abbrev-ref HEAD`[/\d+.\d+.\d+$/]
-v_from_tag = `git describe`
 Gem::Specification.new do |s|
   s.name          = 'neuroevo'
-  s.version       = v_from_branch || v_from_tag || raise("Missing version")
+  s.version       = `git describe`
   s.platform      = Gem::Platform::RUBY
   s.date          = Date.today.strftime "%Y-%m-%d"
   s.author        = 'Giuseppe Cuccu'
