@@ -139,6 +139,12 @@ class NES
       puts "\n    Training complete"
     end
   end
+
+  def resume distr, **run_opts
+    load distr
+    run run_opts
+  end
+
 end
 
 class XNES < NES
@@ -170,6 +176,18 @@ class XNES < NES
   def convergence
     # Estimate algorithm convergence as total variance
     sigma.trace
+  end
+
+  def dump
+    [mu.true_to_a, log_sigma.true_to_a]
+  end
+
+  def load data
+    raise "Hell!" unless data.size == 2
+    mu_ary, log_sigma_ary = data
+    @mu = NMatrix[*mu_ary, dtype: :float64]
+    @log_sigma = NMatrix[*log_sigma_ary, dtype: :float64]
+    @sigma = log_sigma.exponential
   end
 end
 
