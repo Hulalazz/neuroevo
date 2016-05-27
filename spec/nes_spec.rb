@@ -273,7 +273,7 @@ describe NES do
         ntimes = 115
         context "within #{ntimes} iterations" do
           it "optimizes the negative squares function" do
-            nes.run ntrain: ntimes, printevery: false # 50
+            ntimes.times { nes.train }
             assert nes.mu.all? { |v| v.approximates? 0 }
             assert nes.convergence.approximates? 0
           end
@@ -285,7 +285,7 @@ describe NES do
       it "#dump and #load" do
         opt_type = m[:opt_type]
         nes1 = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
-        nes1.run ntrain: 3, printevery: false
+        3.times { nes1.train }
         savedata1 = nes1.dump
         nes2 = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 2
         nes2.load savedata1
@@ -293,21 +293,22 @@ describe NES do
         assert savedata1 == savedata2
       end
 
-      it "#resume" do
+      it "#load allows resuming" do
         opt_type = m[:opt_type]
         nes = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
-        nes.run ntrain: 4, printevery: false
+        4.times { nes.train }
         run_4_straight = nes.dump
 
         nes = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
-        nes.run ntrain: 2, printevery: false
+        2.times { nes.train }
         run_2_only = nes.dump
 
         # If I resume with a new nes, it works, but results differ because
         # it changes the number of times the rand has been sampled
         nes_new = XNES.new m[:ndims], obj_fns[opt_type], opt_type, seed: 1
-        nes_new.resume run_2_only, ntrain: 2, printevery: false
-        run_4_resumed_new = nes.dump
+        nes_new.load run_2_only
+        2.times { nes_new.train }
+        run_4_resumed_new = nes_new.dump
         refute run_4_straight == run_4_resumed_new
 
         # If instead I use a nes with same seed and same number of rand
@@ -315,7 +316,8 @@ describe NES do
         nes.instance_eval("@mu = NMatrix[#{m[:mu].to_a}]")
         nes.instance_eval("@log_sigma = NMatrix[*#{m[:log_sigma].to_a}]")
         nes.instance_eval("@sigma = NMatrix[*#{m[:sigma].to_a}]")
-        nes.resume run_2_only, ntrain: 2, printevery: false
+        nes.load run_2_only
+        2.times { nes.train }
         run_4_resumed = nes.dump
         assert run_4_straight == run_4_resumed
       end
@@ -330,7 +332,7 @@ describe NES do
       ntimes = 110
       context "within #{ntimes} iterations" do
         it "optimizes the negative squares function" do
-          nes.run ntrain: ntimes, printevery: false # 50
+          ntimes.times { nes.train }
           assert nes.mu.all? { |v| v.approximates? 0 }
           assert nes.convergence.approximates? 0
         end
@@ -342,7 +344,7 @@ describe NES do
         opt_type = :min
         ndims = 5
         nes1 = XNES.new ndims, obj_fns[opt_type], opt_type, seed: 1
-        nes1.run ntrain: 3, printevery: false
+        3.times { nes1.train }
         savedata1 = nes1.dump
         nes2 = XNES.new ndims, obj_fns[opt_type], opt_type, seed: 2
         nes2.load savedata1
