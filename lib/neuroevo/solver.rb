@@ -1,42 +1,55 @@
+require 'forwardable'
 
 # Allows to define a solution search with a clearly-readable options hash.
 # Builds all the necessary framework, runs the optimization, then saves
 # the search state.
 class Solver
+  extend Forwardable
 
-  attr_reader :id, :nes, :fit, :run_opts, :description, :save_file, :serializer
+  attr_reader :id, :nes, :fit, :run_opts, :description,
+    :save_file, :serializer, :accessor
+
+  delegate [:net, :input_target_pairs] => :fit
 
   # This allows me to define a clearly readable options hash in the
   # caller that both documents, defines and initializes the Solver
   # @param id experiment id
   # @param description human-readable description of what to solve
   # TODO: better optimizer description?
+  # @param serializer serialization class for data dumping
   # @param optimizer optimizer description
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
-  def initialize id:, description:, optimizer:, fitness:, run:
+  def initialize id:, description:, serializer:, savepath:,
+      optimizer:, fitness:, run:, seed:
     @id  = id
     @run_opts = run
     @description = description
-    @serializer = serializer
-    ext = case serializer
-          when JSON then 'json'
-          when Marshal then 'mar'
-          else raise "Hell! Unrecognized serializer!"
-          end
-    @save_file = Rails.root.join("neuroevo","results_#{id}.#{ext}")
+    case serializer
+    when :json
+      require 'json'
+      ext = 'json'
+      @serializer = JSON
+      @accessor = 'w'
+    when :marshal
+      ext = 'mar'
+      @serializer = Marshal
+      @accessor = 'wb'
+    else raise "Hell! Unrecognized serializer!"
+    end
+    @save_file = savepath + "results_#{id}.#{ext}"
 
     @fit = optimizer[:fit_class].new fitness
     @nes = optimizer[:nes_class].new fit.net.nweights,
-      fit, fit.class::OPT_TYPE #, seed: 1
+      fit, fit.class::OPT_TYPE, seed: seed
   end
 
   # Run find me a solution! Go boy!
-  def run
+  def run save_results=true
     pre_run_print if run_opts[:printevery]
     nes.run run_opts
     post_run_print if run_opts[:printevery]
-    save
+    save run_opts[:printevery] if save_results
 
     # drop to pry console at end of execution
     # require 'pry'; binding.pry
@@ -51,8 +64,8 @@ class Solver
   # @note currently saving only what I need, which is the NES dump
   def save verification=true
     # TODO: dump hash with all data?
-    File.open(save_file, 'wb') do |f|
-      @serializer.dump nes.dump, f
+    File.open(save_file, accessor) do |f|
+      serializer.dump nes.dump, f
     end
     if verification # else will return `nil`
       (load(false) == nes.dump).tap do |saved|
@@ -68,7 +81,7 @@ class Solver
   #   Check the specs for details.
   def load print_confirmation=true
     # They're arrays, you'll need to rebuild the NMatrices to resume.
-    @serializer.load(File.read save_file).tap do |res|
+    serializer.load(File.read save_file).tap do |res|
       return puts "\n\n\t\tLOAD FAILED!!\n\n" unless res
       puts "Load successful" if print_confirmation
     end
