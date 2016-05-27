@@ -20,8 +20,8 @@ class Solver
   # @param optimizer optimizer description
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
-  def initialize id:, description:, serializer:, savepath:,
-      optimizer:, fitness:, run:, seed:
+  def initialize id:, description:, serializer:, savepath: nil,
+      optimizer:, fitness:, run:, seed: nil
     @id  = id
     @run_opts = run
     @description = description
@@ -37,7 +37,7 @@ class Solver
       @accessor = 'wb'
     else raise "Hell! Unrecognized serializer!"
     end
-    @save_file = savepath + "results_#{id}.#{ext}"
+    @save_file = savepath + "results_#{id}.#{ext}" unless savepath.nil?
 
     @fit = optimizer[:fit_class].new fitness
     @nes = optimizer[:nes_class].new fit.net.nweights,
@@ -45,11 +45,11 @@ class Solver
   end
 
   # Run find me a solution! Go boy!
-  def run save_results=true
+  def run
     pre_run_print if run_opts[:printevery]
     nes.run run_opts
     post_run_print if run_opts[:printevery]
-    save run_opts[:printevery] if save_results
+    save run_opts[:printevery] unless save_file.nil?
 
     # drop to pry console at end of execution
     # require 'pry'; binding.pry

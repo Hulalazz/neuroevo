@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.author        = 'Giuseppe Cuccu'
   s.email         = 'giuseppe.cuccu@gmail.com'
   s.summary       = "Neuroevolution in Ruby."
-  s.description   = <<-END
+  s.description   = %Q[\
     Born as working code I needed to import in a larger framework,
     this little gem constitutes a basic but de facto usable neuroevolution
     framework, extremely easy to start with.
@@ -29,12 +29,11 @@ Gem::Specification.new do |s|
     If your business is backed by a Rails CMS, and linear regression is not
     sufficient to predict trends in your data, have it a go with NNCurveFitting.
     I am using it on my job, and am extremely satisfied by the results.
-  END
-  s.description.gsub! ' '*4, ''
+  ].gsub('  ', '')
 
   s.homepage      = 'https://github.com/giuse/neuroevo'
   s.license       = 'MIT'
-  s.post_install_message = <<-END
+  s.post_install_message = %Q[\
     Thanks for installing neuroevo!
     I wish it will help you achieve your goals.
 
@@ -43,8 +42,7 @@ Gem::Specification.new do |s|
     is missing and you can do better (glad to get help).
 
     Most importantly: have fun! :)
-  END
-  s.post_install_message.gsub! ' '*4, ''
+  ].gsub('  ', '')
 
   s.rubyforge_project = "neuroevo" # required for validation
   s.files         = `git ls-files -z`.split("\x0")
