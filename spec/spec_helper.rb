@@ -20,6 +20,8 @@
 require 'ae/adapters/rspec'
 require_relative '../lib/neuroevo/nes'
 require_relative '../lib/neuroevo/nn'
+require_relative '../lib/neuroevo/nn_curve_fitting'
+require_relative '../lib/neuroevo/solver'
 
 STDOUT.sync = true
 
