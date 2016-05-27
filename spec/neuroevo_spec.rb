@@ -72,7 +72,7 @@ describe "Neuroevolution" do
         ntrain = 15
 
         it "approximates the XOR function in #{ntrain} generations" do
-          nes.run ntrain: ntrain, printevery: false
+          ntrain.times { nes.train }
           assert fit.nwrong == 0
         end
       end
