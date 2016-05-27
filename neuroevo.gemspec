@@ -6,46 +6,43 @@ Gem::Specification.new do |s|
   s.date          = Date.today.strftime "%Y-%m-%d"
   s.author        = 'Giuseppe Cuccu'
   s.email         = 'giuseppe.cuccu@gmail.com'
-  s.summary       = "Porting my neuroevolution research code to Ruby."
-  s.description   = %Q[
-This is code I'm working on, I'm creating a gem just to easily import it in
-a larger framework. It's not intended for distribution as of now, but you're
-welcome to play with it :)
+  s.summary       = "Neuroevolution in Ruby."
+  s.description   = %Q[\
+    Born as working code I needed to import in a larger framework,
+    this little gem constitutes a basic but de facto usable neuroevolution
+    framework, extremely easy to start with.
+    You're welcome to come play with me :)
 
-UPDATE: This gem is slowly growing into something other people may find
-      useful. Version 0.1.6 introduces even documentation! :P
-      It's also ever slowly diverging into three largely independent
-      projects: a neural network implementation, a black box
-      optimizer, and a linear algebra support library. To these I'll
-      soon add a definition of "experiment" (not actual name), to
-      keep the ecosystem together.
+    5 main blocks compose it:
+      - a linear algebra library, currently mostly NMatrix with few extensions
+      - a neural network implementation, for the generic function approximator
+      - a black-box optimizer, searching for the network's weights
+      - a complex fitness setup (for starters, any callable object will do)
+      - a solver / execution manager, easy to configure and extend
+    Choices are currently very limited (e.g. 2 networks and 2 optimizers), but
+    as long as I will need this gem at work, it is guaranteed to grow.
+    Collaborations are most welcome.
 
-      I am beginning to think this could be useful to any business
-      with big data managed by Rails. Well, I am managing my work
-      data in a Rails environment, so I get for free browser views
-      and database interface, among others.
+    Check the spec for neuroevo to learn it bottom-up.
+    Check the spec for solver to learn it top-down.
 
-      Let's see where this thing gets us :)
-]
+    If your business is backed by a Rails CMS, and linear regression is not
+    sufficient to predict trends in your data, have it a go with NNCurveFitting.
+    I am using it on my job, and am extremely satisfied by the results.
+  ].gsub('  ', '')
 
   s.homepage      = 'https://github.com/giuse/neuroevo'
   s.license       = 'MIT'
-  s.post_install_message = <<-EOF
-************************************************************************
-                          BEWARE - HERE BE DRAGONS
-************************************************************************
-This is working code from me to me. I am not producing community-quality
-code ATM, just squeezing back what I need from my old Mathematica code.
+  s.post_install_message = %Q[\
+    Thanks for installing neuroevo!
+    I wish it will help you achieve your goals.
 
-The gem build is there for easier import rather than sharing purposes.
-I presently consider the future of this code as a future consideration.
+    It sure is helping me with mine, so we're akin: you're most welcome to
+    drop me a mail, and tell me what is your goal (glad to help), and what
+    is missing and you can do better (glad to get help).
 
-That said, if you'd like to make my code your own, you'll find me most
-enthusiast :)
-
-Thanks!
-
-EOF
+    Most importantly: have fun! :)
+  ].gsub('  ', '')
 
   s.rubyforge_project = "neuroevo" # required for validation
   s.files         = `git ls-files -z`.split("\x0")

@@ -6,8 +6,8 @@ require 'forwardable'
 class Solver
   extend Forwardable
 
-  attr_reader :id, :nes, :fit, :run_opts, :description,
-    :save_file, :serializer, :accessor
+  attr_reader :id, :nes, :fit, :description,
+    :save_file, :serializer, :accessor, :printevery, :ntrain
 
   delegate [:net, :input_target_pairs] => :fit
 
@@ -20,11 +20,12 @@ class Solver
   # @param optimizer optimizer description
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
-  def initialize id:, description:, serializer:, savepath:,
-      optimizer:, fitness:, run:, seed:
+  def initialize id:, description:, serializer:, savepath: nil,
+      optimizer:, fitness:, run:, seed: nil
     @id  = id
-    @run_opts = run
     @description = description
+    @printevery = run[:printevery]
+    @ntrain = run[:ntrain]
     case serializer
     when :json
       require 'json'
@@ -37,7 +38,7 @@ class Solver
       @accessor = 'wb'
     else raise "Hell! Unrecognized serializer!"
     end
-    @save_file = savepath + "results_#{id}.#{ext}"
+    @save_file = savepath + "results_#{id}.#{ext}" unless savepath.nil?
 
     @fit = optimizer[:fit_class].new fitness
     @nes = optimizer[:nes_class].new fit.net.nweights,
@@ -45,11 +46,18 @@ class Solver
   end
 
   # Run find me a solution! Go boy!
-  def run save_results=true
-    pre_run_print if run_opts[:printevery]
-    nes.run run_opts
-    post_run_print if run_opts[:printevery]
-    save run_opts[:printevery] if save_results
+  # @param ntrain [Integer] number of generations to train for
+  # @printevery [Integer, nil] number of generations between printouts.
+  #   Set to false to disable printing.
+  def run
+    pre_run_print
+    ntrain.times do |gen|
+      in_run_print gen
+      nes.train
+    end
+    post_run_print
+
+    save !!printevery unless save_file.nil?
 
     # drop to pry console at end of execution
     # require 'pry'; binding.pry
@@ -89,20 +97,36 @@ class Solver
 
   # Beginning-of-run printout and stats
   def pre_run_print
+    return unless printevery
     @start = Time.now()
     puts "\n#{description}\n" unless description.nil?
     puts
     puts "Starting execution at #{@start}"
+    puts "#{nes.class} training -- #{ntrain} iterations -- printing every #{printevery} generations\n"
+  end
+
+  def in_run_print i
+    return unless printevery and i==0 || (i+1)%printevery==0
+    mu_fit = nes.obj_fn.([nes.mu]).first
+    puts %Q[
+      #{i+1}/#{ntrain}
+        mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
+        conv (avg):  #{nes.convergence/nes.ndims}
+        mu's fit:    #{mu_fit}
+    ].gsub(/^\ {6}/, '')
   end
 
   # End-of-run printout and stats
   def post_run_print
+    return unless printevery
+    puts "\n    Training complete"
     puts
     puts "Started execution at #{@start}"
     @finish = Time.now()
     puts "Ended execution at #{@finish}"
     time_difference = Time.at(@finish-@start).utc.strftime("%H:%M:%S")
     puts "Time elapsed: #{time_difference}."
+    puts
   end
 
 end
