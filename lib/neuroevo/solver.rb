@@ -7,7 +7,7 @@ class Solver
   extend Forwardable
 
   attr_reader :id, :nes, :fit, :description,
-    :save_file, :serializer, :accessor, :printevery, :ntrain
+    :save_file, :serializer, :accessor, :printevery, :ngens, :nruns
 
   delegate [:net, :input_target_pairs] => :fit
 
@@ -16,16 +16,19 @@ class Solver
   # @param id experiment id
   # @param description human-readable description of what to solve
   # TODO: better optimizer description?
-  # @param serializer serialization class for data dumping
-  # @param optimizer optimizer description
+  # @param serializer [{:json, :marshal}] serialization class for data dumping
+  # @param savepath [file path] path where to save results (`nil` to disable)
+  # @param optimizer optimizer options
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
+  # @param seed random seed for deterministic execution (`nil` for random)
   def initialize id:, description:, serializer:, savepath: nil,
       optimizer:, fitness:, run:, seed: nil
-    @id  = id
+    @id = id
     @description = description
-    @printevery = run[:printevery]
-    @ntrain = run[:ntrain]
+    @printevery = run[:printevery] # Set to false to disable printing.
+    @ngens = run[:ngens] || 1
+    @nruns = run[:nruns] || 1
     case serializer
     when :json
       require 'json'
@@ -45,17 +48,40 @@ class Solver
       fit, fit.class::OPT_TYPE, seed: seed
   end
 
-  # Run find me a solution! Go boy!
-  # @param ntrain [Integer] number of generations to train for
-  # @printevery [Integer, nil] number of generations between printouts.
-  #   Set to false to disable printing.
-  def run
-    pre_run_print
-    ntrain.times do |gen|
-      in_run_print gen
-      nes.train
+  # Temporary parameter overload, useful when calling `run` by hand
+  # @param params [Hash] params to overload
+  def with_params_overload params
+    return yield if params.empty?
+    @to_restore = {}
+    params.each do |k,v|
+      var_name = :"@#{k}"
+      @to_restore[var_name] = instance_variable_get var_name
+      instance_variable_set var_name, v
     end
-    post_run_print
+    yield
+  ensure
+    unless @to_restore.nil?
+      @to_restore.each { |var,val| instance_variable_set var, val }
+      @to_restore = nil
+    end
+  end
+
+  # Run find me a solution! Go boy!
+  # @param overload [Hash] if you call manually call `run` you can overload
+  # any parameter
+  def run **config_overload
+    with_params_overload config_overload do
+      pre_run_print
+      nruns.times do |run|
+        pre_gen_print
+          ngens.times do |gen|
+            in_gen_print gen
+            nes.train
+          end
+        post_gen_print
+      end
+      post_run_print
+    end
 
     save !!printevery unless save_file.nil?
 
@@ -97,19 +123,23 @@ class Solver
 
   # Beginning-of-run printout and stats
   def pre_run_print
+  end
+
+  # Beginning-of-generation printout and stats
+  def pre_gen_print
     return unless printevery
     @start = Time.now()
     puts "\n#{description}\n" unless description.nil?
     puts
     puts "Starting execution at #{@start}"
-    puts "#{nes.class} training -- #{ntrain} iterations -- printing every #{printevery} generations\n"
+    puts "#{nes.class} training -- #{ngens} iterations -- printing every #{printevery} generations\n"
   end
 
-  def in_run_print i
+  def in_gen_print i
     return unless printevery and i==0 || (i+1)%printevery==0
     mu_fit = nes.obj_fn.([nes.mu]).first
     puts %Q[
-      #{i+1}/#{ntrain}
+      #{i+1}/#{ngens}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
         mu's fit:    #{mu_fit}
@@ -118,6 +148,10 @@ class Solver
 
   # End-of-run printout and stats
   def post_run_print
+  end
+
+  # End-of-generation printout and stats
+  def post_gen_print
     return unless printevery
     puts "\n    Training complete"
     puts

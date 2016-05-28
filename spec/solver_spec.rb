@@ -41,12 +41,12 @@ describe Solver do
           },
         },
         run: {
-          ntrain:      15,
+          ngens:       15,
           printevery:  false
         }
       }
 
-      # I'll patch in a method to verify the curve has been fit
+      # I'll patch in a method to verify how many points have been fit
       class Solver
         def nwrong
           net.load_weights nes.mu.to_a.flatten
@@ -62,24 +62,25 @@ describe Solver do
       context "using XNES as optimizer" do
         it "approximates XOR in #{config[:run][:ntrain]} generations" do
           solver = Solver.new config
-          # evaluate in temporary directory
+          # evaluate in empty temporary directory
           require 'pathname'
           orig = Pathname.pwd
           dir = config[:savepath]
           dumpfile = dir + "results_1.json"
-          FileUtils.mkdir_p(dir)
-          Dir.chdir(dir)
+          FileUtils.mkdir_p dir
+          Dir.chdir dir
+          File.delete dumpfile if File.exists? dumpfile
           refute File.exists? dumpfile
           # solve xor fitting
-          solver.run
+          solver.run # printevery: 1
           assert solver.nwrong == 0
           # it "the state of the search should be correctly dumped" do
           assert File.exists? dumpfile
           loaded = JSON.load File.read dumpfile
           assert solver.nes.dump == loaded
           # finally clean up the directory
-          Dir.chdir(orig)
-          FileUtils.rm_rf(dir)
+          Dir.chdir orig
+          FileUtils.rm_rf dir
         end
       end
     end
