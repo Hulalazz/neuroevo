@@ -6,8 +6,8 @@ require 'forwardable'
 class Solver
   extend Forwardable
 
-  attr_reader :id, :nes, :fit, :description,
-    :save_file, :serializer, :accessor, :printevery, :ngens, :nruns
+  attr_reader :id, :nes, :fit, :description, :savepath, :ext,
+    :serializer, :accessor, :printevery, :ngens, :nruns
 
   delegate [:net, :input_target_pairs] => :fit
 
@@ -22,30 +22,35 @@ class Solver
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
   # @param seed random seed for deterministic execution (`nil` for random)
-  def initialize id:, description:, serializer:, savepath: nil,
+  def initialize id:, description:, serializer: :json, savepath: nil,
       optimizer:, fitness:, run:, seed: nil
     @id = id
     @description = description
     @printevery = run[:printevery] # Set to false to disable printing.
     @ngens = run[:ngens] || 1
-    @nruns = run[:nruns] || 1
+    @nruns = run[:nruns]
+    @savepath = savepath
     case serializer
     when :json
       require 'json'
-      ext = 'json'
+      @ext = 'json'
       @serializer = JSON
       @accessor = 'w'
     when :marshal
-      ext = 'mar'
+      @ext = 'mar'
       @serializer = Marshal
       @accessor = 'wb'
     else raise "Hell! Unrecognized serializer!"
     end
-    @save_file = savepath + "results_#{id}.#{ext}" unless savepath.nil?
 
     @fit = optimizer[:fit_class].new fitness
     @nes = optimizer[:nes_class].new fit.net.nweights,
       fit, fit.class::OPT_TYPE, seed: seed
+  end
+
+  def save_file nrun=nil
+    return false unless savepath
+    savepath + "results_#{id}#{"_run#{nrun}" unless nruns.nil?}.#{ext}"
   end
 
   # Temporary parameter overload, useful when calling `run` by hand
@@ -72,18 +77,18 @@ class Solver
   def run **config_overload
     with_params_overload config_overload do
       pre_run_print
-      nruns.times do |run|
+      (nruns || 1).times do |nrun|
         pre_gen_print
-          ngens.times do |gen|
-            in_gen_print gen
+          ngens.times do |ngen|
+            in_gen_print ngen
             nes.train
           end
         post_gen_print
+        save nrun
       end
       post_run_print
     end
 
-    save !!printevery unless save_file.nil?
 
     # drop to pry console at end of execution
     # require 'pry'; binding.pry
@@ -96,15 +101,19 @@ class Solver
 
   # Save solver execution
   # @note currently saving only what I need, which is the NES dump
-  def save verification=true
+  def save nrun, verification=true
     # TODO: dump hash with all data?
-    File.open(save_file, accessor) do |f|
+    return nil unless save_file(nrun)
+    File.open(save_file(nrun), accessor) do |f|
       serializer.dump nes.dump, f
     end
     if verification # else will return `nil`
-      (load(false) == nes.dump).tap do |saved|
+      success = load(nrun, false) == nes.dump
+      if printevery
+        puts "File: < #{save_file(nrun)} >"
         puts (saved ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
+      success || raise("Hell! Can't save!")
     end
   end
 
@@ -113,9 +122,9 @@ class Solver
   #   What I do is I re-load the experiment file, which includes the
   #   parameters hash, then I just load the search state from here.
   #   Check the specs for details.
-  def load print_confirmation=true
+  def load nrun, print_confirmation=true
     # They're arrays, you'll need to rebuild the NMatrices to resume.
-    serializer.load(File.read save_file).tap do |res|
+    serializer.load(File.read save_file nrun).tap do |res|
       return puts "\n\n\t\tLOAD FAILED!!\n\n" unless res
       puts "Load successful" if print_confirmation
     end
