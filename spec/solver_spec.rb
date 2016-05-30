@@ -85,18 +85,18 @@ describe Solver do
           it "with experiment id for multiple runs" do
             dumpfile1 = tmp_dir + "results_1_r1.json"
             dumpfile2 = tmp_dir + "results_1_r2.json"
-            # dumpfile3 = tmp_dir + "results_1_r3.json"
+            dumpfile3 = tmp_dir + "results_1_r3.json"
             refute File.exists? dumpfile1
             refute File.exists? dumpfile2
-            # refute File.exists? dumpfile3
+            refute File.exists? dumpfile3
             solver.run savepath: tmp_dir, id: 1, nruns: 3 #, ngens: 1000
             assert File.exists? dumpfile1
             assert File.exists? dumpfile2
-            # assert File.exists? dumpfile3
+            assert File.exists? dumpfile3
             # verify (actually each is verified in #save)
-            # refute solver.nes.dump == JSON.load File.read dumpfile1
-            # refute solver.nes.dump == JSON.load File.read dumpfile2
-            # assert solver.nes.dump == JSON.load File.read dumpfile3
+            refute solver.nes.dump == JSON.load(File.read dumpfile1)
+            refute solver.nes.dump == JSON.load(File.read dumpfile2)
+            assert solver.nes.dump == JSON.load(File.read dumpfile3)
           end
         end
       end
