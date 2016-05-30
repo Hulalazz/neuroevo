@@ -24,7 +24,7 @@ describe Solver do
       # all parameters desired for the run. Just remember: the focus
       # here should be ease of read, rather than write. Make it clear.
       config = {
-        id: 1, #__FILE__[/_(\d).rb$/,1], # can get exp id from file name
+        #id: 1, #__FILE__[/_(\d).rb$/,1], # can get exp id from file name
         description: "XNES 1-neuron prediction of **XOR** function",
         seed: 1, # fixed seed for deterministic testing
         optimizer: {
@@ -70,10 +70,9 @@ describe Solver do
           in_temporary_folder
           it "the state of the search should be correctly dumped" do
             solver = Solver.new config
-            dumpfile = tmp_dir + "results_1.json"
+            dumpfile = tmp_dir + "results.json"
             refute File.exists? dumpfile
-            # solve xor fitting
-            solver.run savepath: tmp_dir, ngens: 1 #, printevery: 1
+            solver.run savepath: tmp_dir, ngens: 1 # , printevery: 50
             assert File.exists? dumpfile
             loaded = JSON.load File.read dumpfile
             # verify

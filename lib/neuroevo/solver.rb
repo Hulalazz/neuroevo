@@ -22,7 +22,7 @@ class Solver
   # @param fitness options hash for the fitness object
   # @param run options hash for the run
   # @param seed random seed for deterministic execution (`nil` for random)
-  def initialize id:, description:, serializer: :json, savepath: nil,
+  def initialize id: nil, description:, serializer: :json, savepath: nil,
       optimizer:, fitness:, run:, seed: nil
     @id = id
     @description = description
@@ -33,11 +33,11 @@ class Solver
     case serializer
     when :json
       require 'json'
-      @ext = 'json'
+      @ext = '.json'
       @serializer = JSON
       @accessor = 'w'
     when :marshal
-      @ext = 'mar'
+      @ext = '.mar'
       @serializer = Marshal
       @accessor = 'wb'
     else raise "Hell! Unrecognized serializer!"
@@ -50,7 +50,10 @@ class Solver
 
   def save_file nrun=nil
     return false unless savepath
-    savepath + "results_#{id}#{"_run#{nrun}" unless nruns.nil?}.#{ext}"
+    base_name = "results"
+    id_part = id && "_#{id}" || ""
+    run_part = nruns && "_#{nrun}" || ""
+    savepath + (base_name + id_part + run_part + ext)
   end
 
   # Temporary parameter overload, useful when calling `run` by hand
@@ -72,14 +75,14 @@ class Solver
   end
 
   # Run find me a solution! Go boy!
-  # @param overload [Hash] if you call manually call `run` you can overload
-  # any parameter
+  # @param config_overload [Hash] if you call manually call `run`
+  # you can temporarily overload any instance variable from here
   def run **config_overload
     with_params_overload config_overload do
       pre_run_print
-      (nruns || 1).times do |nrun|
+      1.upto(nruns || 1) do |nrun|
         pre_gen_print
-          ngens.times do |ngen|
+          1.upto(ngens || 1) do |ngen|
             in_gen_print ngen
             nes.train
           end
@@ -88,15 +91,12 @@ class Solver
       end
       post_run_print
     end
-
-
-    # drop to pry console at end of execution
+    ## drop to pry console at end of execution
     # require 'pry'; binding.pry
-
-  # anything happens: drop to pry console
-  # rescue Exception => e
-    # require 'pry'; binding.pry
-    # raise
+    ## anything happens: drop to pry console
+    # rescue Exception => e
+    #   require 'pry'; binding.pry
+    #   raise
   end
 
   # Save solver execution
@@ -111,7 +111,7 @@ class Solver
       success = load(nrun, false) == nes.dump
       if printevery
         puts "File: < #{save_file(nrun)} >"
-        puts (saved ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
+        puts (success ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
       success || raise("Hell! Can't save!")
     end
@@ -144,11 +144,11 @@ class Solver
     puts "#{nes.class} training -- #{ngens} iterations -- printing every #{printevery} generations\n"
   end
 
-  def in_gen_print i
-    return unless printevery and i==0 || (i+1)%printevery==0
+  def in_gen_print ngen
+    return unless printevery && (ngen==1 || (ngen)%printevery==0)
     mu_fit = nes.obj_fn.([nes.mu]).first
     puts %Q[
-      #{i+1}/#{ngens}
+      #{ngen}/#{ngens}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
         mu's fit:    #{mu_fit}
@@ -164,12 +164,27 @@ class Solver
     return unless printevery
     puts "\n    Training complete"
     puts
-    puts "Started execution at #{@start}"
+
+    #formatting
+    date_format = "%d.%m@"
+    time_format = "%H:%M:%S"
+    elapsed_days_format = "%-dd "
+    one_day = 60*60*24
+
+    # stats
     @finish = Time.now()
-    puts "Ended execution at #{@finish}"
-    time_difference = Time.at(@finish-@start).utc.strftime("%H:%M:%S")
-    puts "Time elapsed: #{time_difference}."
-    puts
+    @elapsed = Time.at(@finish-@start)
+    date_changed = @start.strftime(date_format) != @finish.strftime(date_format)
+    run_for_days = @elapsed >= Time.at(one_day)
+
+    puts format("Start: %s%s -- End: %s%s -- Elapsed: %s%s\n",
+      (@start.strftime(date_format) if date_changed),
+      @start.strftime(time_format),
+      (@finish.strftime(date_format) if date_changed),
+      @finish.strftime(time_format),
+      ((@elapsed-one_day).strftime(elapsed_days_format) if run_for_days),
+      @elapsed.utc.strftime(time_format)
+    )
   end
 
 end
