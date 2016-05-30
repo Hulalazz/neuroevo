@@ -24,11 +24,9 @@ describe Solver do
       # all parameters desired for the run. Just remember: the focus
       # here should be ease of read, rather than write. Make it clear.
       config = {
-        id: 1, #__FILE__[/_(\d).rb$/,1], # can get exp id from file name
+        #id: 1, #__FILE__[/_(\d).rb$/,1], # can get exp id from file name
         description: "XNES 1-neuron prediction of **XOR** function",
-        serializer: :json,
-        savepath: Pathname.pwd + 'tmp',
-        seed: 1,
+        seed: 1, # fixed seed for deterministic testing
         optimizer: {
           fit_class: XorFit,
           nes_class: XNES
@@ -41,12 +39,13 @@ describe Solver do
           },
         },
         run: {
-          ntrain:      15,
+          # ngens:       15,
+          # nruns:       3,
           printevery:  false
         }
       }
 
-      # I'll patch in a method to verify the curve has been fit
+      # I'll patch in a method to verify how many points have been fit
       class Solver
         def nwrong
           net.load_weights nes.mu.to_a.flatten
@@ -60,26 +59,45 @@ describe Solver do
       end
 
       context "using XNES as optimizer" do
-        it "approximates XOR in #{config[:run][:ntrain]} generations" do
-          solver = Solver.new config
-          # evaluate in temporary directory
-          require 'pathname'
-          orig = Pathname.pwd
-          dir = config[:savepath]
-          dumpfile = dir + "results_1.json"
-          FileUtils.mkdir_p(dir)
-          Dir.chdir(dir)
-          refute File.exists? dumpfile
+        ngens = 15
+        it "approximates XOR in #{ngens} generations" do
           # solve xor fitting
-          solver.run
+          solver = Solver.new config
+          solver.run ngens: ngens
           assert solver.nwrong == 0
-          # it "the state of the search should be correctly dumped" do
-          assert File.exists? dumpfile
-          loaded = JSON.load File.read dumpfile
-          assert solver.nes.dump == loaded
-          # finally clean up the directory
-          Dir.chdir(orig)
-          FileUtils.rm_rf(dir)
+        end
+
+        context "the state of the search should be correctly dumped" do
+          include UsesTemporaryFolders
+          in_temporary_folder
+          solver = Solver.new config
+
+          it "with default run options" do
+            dumpfile = tmp_dir + "results.json"
+            refute File.exists? dumpfile
+            solver.run savepath: tmp_dir #, ngens: 3, printevery: 1
+            assert File.exists? dumpfile
+            loaded = JSON.load File.read dumpfile
+            # verify
+            assert solver.nes.dump == loaded
+          end
+
+          it "with experiment id for multiple runs" do
+            dumpfile1 = tmp_dir + "results_1_r1.json"
+            dumpfile2 = tmp_dir + "results_1_r2.json"
+            # dumpfile3 = tmp_dir + "results_1_r3.json"
+            refute File.exists? dumpfile1
+            refute File.exists? dumpfile2
+            # refute File.exists? dumpfile3
+            solver.run savepath: tmp_dir, id: 1, nruns: 3 #, ngens: 1000
+            assert File.exists? dumpfile1
+            assert File.exists? dumpfile2
+            # assert File.exists? dumpfile3
+            # verify (actually each is verified in #save)
+            # refute solver.nes.dump == JSON.load File.read dumpfile1
+            # refute solver.nes.dump == JSON.load File.read dumpfile2
+            # assert solver.nes.dump == JSON.load File.read dumpfile3
+          end
         end
       end
     end
