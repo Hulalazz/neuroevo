@@ -63,11 +63,11 @@ class TimeTracker
   # API (others are public just for easy hacking)
 
   def start_tracking
-    @start_time = Time.now().utc
+    @start_time = Time.now()
   end
 
   def end_tracking
-    @end_time = Time.now().utc # + ONE_DAY.to_i # to debug date printing ;)
+    @end_time = Time.now() # + ONE_DAY.to_i # to debug date printing ;)
     @elapsed_time = Time.at(@end_time - @start_time).utc
     @date_changed = start_date != end_date
     # The date changes usually before 24h elapsed

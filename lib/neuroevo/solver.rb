@@ -116,8 +116,8 @@ class Solver
     if verify # else will return `nil`
       success = load(where, false) == what
       if verbose
-        puts "File: < #{where} >"
-        puts (success ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
+        puts "File: < #{where} >" +
+          (success ? "\n  => Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
       success || raise("Hell! Can't save!")
     end
@@ -181,6 +181,10 @@ class Solver
     if savefile
       save_solution
       save_pred_obs
+    end
+    if printevery
+      tt.end_tracking
+      puts "\n\t#{tt.summary}"
     end
   end
 
