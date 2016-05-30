@@ -52,7 +52,7 @@ class Solver
     return false unless savepath
     base_name = "results"
     id_part = id && "_#{id}" || ""
-    run_part = nruns && "_#{nrun}" || ""
+    run_part = nruns && "_r#{nrun}" || ""
     savepath + (base_name + id_part + run_part + ext)
   end
 

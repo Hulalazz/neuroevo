@@ -39,7 +39,8 @@ describe Solver do
           },
         },
         run: {
-          ngens:       15,
+          # ngens:       15,
+          # nruns:       3,
           printevery:  false
         }
       }
@@ -58,23 +59,38 @@ describe Solver do
       end
 
       context "using XNES as optimizer" do
-        it "approximates XOR in #{config[:run][:ntrain]} generations" do
+        ngens = 15
+        it "approximates XOR in #{ngens} generations" do
           # solve xor fitting
           solver = Solver.new config
-          solver.run
+          solver.run ngens: ngens
           assert solver.nwrong == 0
         end
 
-        context "saving files" do
+        context "the state of the search should be correctly dumped" do
           include UsesTemporaryFolders
           in_temporary_folder
-          it "the state of the search should be correctly dumped" do
-            solver = Solver.new config
+          solver = Solver.new config
+
+          it "with default run options" do
             dumpfile = tmp_dir + "results.json"
             refute File.exists? dumpfile
-            solver.run savepath: tmp_dir, ngens: 1 # , printevery: 50
+            solver.run savepath: tmp_dir #, ngens: 1, printevery: 50
             assert File.exists? dumpfile
             loaded = JSON.load File.read dumpfile
+            # verify
+            assert solver.nes.dump == loaded
+          end
+
+          it "with experiment id for two runs" do
+            dumpfile1 = tmp_dir + "results_1_r1.json"
+            dumpfile2 = tmp_dir + "results_1_r2.json"
+            refute File.exists? dumpfile1
+            refute File.exists? dumpfile2
+            solver.run savepath: tmp_dir, id: 1, nruns: 2
+            assert File.exists? dumpfile1
+            assert File.exists? dumpfile2
+            loaded = JSON.load File.read dumpfile2
             # verify
             assert solver.nes.dump == loaded
           end
