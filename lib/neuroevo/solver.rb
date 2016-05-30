@@ -1,4 +1,5 @@
 require 'forwardable'
+require_relative 'time_tracker'
 
 # Allows to define a solution search with a clearly-readable options hash.
 # Builds all the necessary framework, runs the optimization, then saves
@@ -6,8 +7,8 @@ require 'forwardable'
 class Solver
   extend Forwardable
 
-  attr_reader :id, :nes, :fit, :description, :savepath, :ext,
-    :serializer, :accessor, :printevery, :ngens, :nruns
+  attr_reader :id, :nes, :fit, :description, :savepath, :ext, :tt,
+    :serializer, :accessor, :printevery, :nruns, :nrun, :ngens, :ngen
 
   delegate [:net, :input_target_pairs] => :fit
 
@@ -27,7 +28,7 @@ class Solver
     @id = id
     @description = description
     @printevery = run[:printevery] # Set to false to disable printing.
-    @ngens = run[:ngens] || 1
+    @ngens = run[:ngens]
     @nruns = run[:nruns]
     @savepath = savepath
     case serializer
@@ -48,7 +49,7 @@ class Solver
       fit, fit.class::OPT_TYPE, seed: seed
   end
 
-  def save_file nrun=nil
+  def savefile
     return false unless savepath
     base_name = "results"
     id_part = id && "_#{id}" || ""
@@ -81,13 +82,15 @@ class Solver
     with_params_overload config_overload do
       pre_run_print
       1.upto(nruns || 1) do |nrun|
+        @nrun = nrun
         pre_gen_print
           1.upto(ngens || 1) do |ngen|
-            in_gen_print ngen
+            @ngen = ngen
+            in_gen_print
             nes.train
           end
         post_gen_print
-        save nrun
+        save
       end
       post_run_print
     end
@@ -99,18 +102,21 @@ class Solver
     #   raise
   end
 
-  # Save solver execution
+  # Save solver state to file
   # @note currently saving only what I need, which is the NES dump
-  def save nrun, verification=true
+  # @param verification [Bool] verify saved data
+  # @return [true, false, nil] boolean confirmation if verification
+  #   is true, nil otherwise
+  def save verification=true
     # TODO: dump hash with all data?
-    return nil unless save_file(nrun)
-    File.open(save_file(nrun), accessor) do |f|
+    return nil unless (filename = savefile)
+    File.open(filename, accessor) do |f|
       serializer.dump nes.dump, f
     end
     if verification # else will return `nil`
-      success = load(nrun, false) == nes.dump
+      success = load(false) == nes.dump
       if printevery
-        puts "File: < #{save_file(nrun)} >"
+        puts "File: < #{filename} >"
         puts (success ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
       success || raise("Hell! Can't save!")
@@ -122,9 +128,9 @@ class Solver
   #   What I do is I re-load the experiment file, which includes the
   #   parameters hash, then I just load the search state from here.
   #   Check the specs for details.
-  def load nrun, print_confirmation=true
+  def load print_confirmation=true
     # They're arrays, you'll need to rebuild the NMatrices to resume.
-    serializer.load(File.read save_file nrun).tap do |res|
+    serializer.load(File.read savefile).tap do |res|
       return puts "\n\n\t\tLOAD FAILED!!\n\n" unless res
       puts "Load successful" if print_confirmation
     end
@@ -137,18 +143,20 @@ class Solver
   # Beginning-of-generation printout and stats
   def pre_gen_print
     return unless printevery
-    @start = Time.now()
+    @tt = TimeTracker.new
+    tt.start_tracking
     puts "\n#{description}\n" unless description.nil?
     puts
-    puts "Starting execution at #{@start}"
+    puts tt.start_string
     puts "#{nes.class} training -- #{ngens} iterations -- printing every #{printevery} generations\n"
   end
 
-  def in_gen_print ngen
+  # Print for each generation
+  def in_gen_print
     return unless printevery && (ngen==1 || (ngen)%printevery==0)
     mu_fit = nes.obj_fn.([nes.mu]).first
     puts %Q[
-      #{ngen}/#{ngens}
+      #{ngen}/#{ngens||1}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
         mu's fit:    #{mu_fit}
@@ -165,26 +173,8 @@ class Solver
     puts "\n    Training complete"
     puts
 
-    #formatting
-    date_format = "%d.%m@"
-    time_format = "%H:%M:%S"
-    elapsed_days_format = "%-dd "
-    one_day = 60*60*24
-
-    # stats
-    @finish = Time.now()
-    @elapsed = Time.at(@finish-@start)
-    date_changed = @start.strftime(date_format) != @finish.strftime(date_format)
-    run_for_days = @elapsed >= Time.at(one_day)
-
-    puts format("Start: %s%s -- End: %s%s -- Elapsed: %s%s\n",
-      (@start.strftime(date_format) if date_changed),
-      @start.strftime(time_format),
-      (@finish.strftime(date_format) if date_changed),
-      @finish.strftime(time_format),
-      ((@elapsed-one_day).strftime(elapsed_days_format) if run_for_days),
-      @elapsed.utc.strftime(time_format)
-    )
+    tt.end_tracking
+    puts tt.summary
   end
 
 end
