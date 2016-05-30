@@ -59,6 +59,8 @@ describe Solver do
       end
 
       context "using XNES as optimizer" do
+        include UsesTemporaryFolders
+
         ngens = 15
         it "approximates XOR in #{ngens} generations" do
           # solve xor fitting
@@ -68,12 +70,11 @@ describe Solver do
         end
 
         context "the state of the search should be correctly dumped" do
-          include UsesTemporaryFolders
           in_temporary_folder
           solver = Solver.new config
 
           it "with default run options" do
-            dumpfile = tmp_dir + "results.json"
+            dumpfile = tmp_dir + "solver.json"
             refute File.exists? dumpfile
             solver.run savepath: tmp_dir #, ngens: 3, printevery: 1
             assert File.exists? dumpfile
@@ -83,9 +84,9 @@ describe Solver do
           end
 
           it "with experiment id for multiple runs" do
-            dumpfile1 = tmp_dir + "results_1_r1.json"
-            dumpfile2 = tmp_dir + "results_1_r2.json"
-            dumpfile3 = tmp_dir + "results_1_r3.json"
+            dumpfile1 = tmp_dir + "solver_1_r1.json"
+            dumpfile2 = tmp_dir + "solver_1_r2.json"
+            dumpfile3 = tmp_dir + "solver_1_r3.json"
             refute File.exists? dumpfile1
             refute File.exists? dumpfile2
             refute File.exists? dumpfile3
@@ -97,6 +98,28 @@ describe Solver do
             refute solver.nes.dump == JSON.load(File.read dumpfile1)
             refute solver.nes.dump == JSON.load(File.read dumpfile2)
             assert solver.nes.dump == JSON.load(File.read dumpfile3)
+          end
+        end
+
+        context "the prediction results of the search should be correctly dumped" do
+          in_temporary_folder
+          solver = Solver.new config
+
+          it "with experiment id for multiple runs" do
+            dumpfile1 = tmp_dir + "pred_obs_1_r1.json"
+            dumpfile2 = tmp_dir + "pred_obs_1_r2.json"
+            dumpfile3 = tmp_dir + "pred_obs_1_r3.json"
+            refute File.exists? dumpfile1
+            refute File.exists? dumpfile2
+            refute File.exists? dumpfile3
+            solver.run savepath: tmp_dir, id: 1, nruns: 3 #, ngens: 1000
+            assert File.exists? dumpfile1
+            assert File.exists? dumpfile2
+            assert File.exists? dumpfile3
+            # verify (actually each is verified in #save)
+            refute solver.fit.pred_obs == JSON.load(File.read dumpfile1)
+            refute solver.fit.pred_obs == JSON.load(File.read dumpfile2)
+            assert solver.fit.pred_obs == JSON.load(File.read dumpfile3)
           end
         end
       end

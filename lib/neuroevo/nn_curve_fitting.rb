@@ -6,7 +6,8 @@
 class NNCurveFitting
   OPT_TYPE = :min # this is an error minimization task
 
-  attr_reader :net, :error
+  attr_reader :net, :error, :last_inputs, :last_observations,
+    :last_predictions, :last_errors
 
   def initialize type, struct, act_fn: :logistic
     # type can be :ffnn for feed forward or :rnn for recurrent
@@ -35,11 +36,20 @@ class NNCurveFitting
   # @param itps [Array<net_inputs, corresp_targets>] list of input-target pairs
   def fitness weights, itps
     net.load_weights weights
-    # TODO: I could have a collect here, save activations or errors to DB maybe
-    itps.inject(0.0) do |tot_err, (input, target)|
-      activation = net.activate(input)
-      tot_err + error(activation, target)
-    end
+    @last_inputs, @last_observations = itps.transpose
+    @last_predictions = last_inputs.collect &net.method(:activate)
+    @last_errors = last_predictions.zip(last_observations).
+      collect { |pred, obs| error pred, obs }
+    return @last_errors.reduce :+
+  end
+
+  # Return list of prediction-observation pairs, either from last execution,
+  #   or from executing the fitness on the weights in parameter if provided
+  # @param weights [Array] weights to use for prediction
+  # @return [Array<Array<pred, obs>>] list of prediction-observation pairs
+  def pred_obs weights=nil
+    call([weights]) unless weights.nil?
+    [last_predictions, last_observations].transpose
   end
 
   ## Implement `#error` in child class
