@@ -78,29 +78,30 @@ class Solver
   # Run find me a solution! Go boy!
   # @param config_overload [Hash] if you call manually call `run`
   # you can temporarily overload any instance variable from here
+  # @note the {pre,post}_{gen,run} hooks can be overloaded to alter execution
   def run **config_overload
     with_params_overload config_overload do
-      pre_run_print
+      pre_all
       1.upto(nruns || 1) do |nrun|
         @nrun = nrun
-        pre_gen_print
+        pre_run
           1.upto(ngens || 1) do |ngen|
             @ngen = ngen
-            in_gen_print
+            pre_gen
             nes.train
+            post_gen
           end
-        post_gen_print
-        save
+        post_run
       end
-      post_run_print
+      post_all
     end
-    ## drop to pry console at end of execution
-    # require 'pry'; binding.pry
     ## anything happens: drop to pry console
     # rescue Exception => e
     #   require 'pry'; binding.pry
     #   raise
   end
+
+  ### Save and load
 
   # Save solver state to file
   # @note currently saving only what I need, which is the NES dump
@@ -109,7 +110,7 @@ class Solver
   #   is true, nil otherwise
   def save verification=true
     # TODO: dump hash with all data?
-    return nil unless (filename = savefile)
+    filename = savefile
     File.open(filename, accessor) do |f|
       serializer.dump nes.dump, f
     end
@@ -136,45 +137,57 @@ class Solver
     end
   end
 
-  # Beginning-of-run printout and stats
-  def pre_run_print
+  ### Execution hooks
+
+  def pre_all
   end
 
-  # Beginning-of-generation printout and stats
-  def pre_gen_print
-    return unless printevery
-    @tt = TimeTracker.new
-    tt.start_tracking
-    puts "\n#{description}\n" unless description.nil?
-    puts
-    puts tt.start_string
-    puts "#{nes.class} training -- #{ngens} iterations -- printing every #{printevery} generations\n"
+  def pre_run
+    if printevery
+      @tt = TimeTracker.new
+      tt.start_tracking
+      puts run_header
+    end
   end
 
-  # Print for each generation
-  def in_gen_print
-    return unless printevery && (ngen==1 || (ngen)%printevery==0)
-    mu_fit = nes.obj_fn.([nes.mu]).first
-    puts %Q[
+  def pre_gen
+  end
+
+  def post_gen
+    if printevery && (ngen==1 || (ngen)%printevery==0)
+      puts gen_summary
+    end
+  end
+
+  def post_run
+    save if savefile
+  end
+
+  def post_all
+    ## drop to pry console at end of execution
+    # require 'pry'; binding.pry
+  end
+
+  ### Reporting
+
+  def run_header
+    %Q[
+
+    #{description}
+
+    #{tt.start_string}
+    #{nes.class} training -- #{ngens} generations -- printing every #{printevery}
+
+    ].gsub('  ', '')
+  end
+
+  def gen_summary
+    %Q[
       #{ngen}/#{ngens||1}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
-        mu's fit:    #{mu_fit}
-    ].gsub(/^\ {6}/, '')
-  end
-
-  # End-of-run printout and stats
-  def post_run_print
-  end
-
-  # End-of-generation printout and stats
-  def post_gen_print
-    return unless printevery
-    puts "\n    Training complete"
-    puts
-
-    tt.end_tracking
-    puts tt.summary
+        mu's fit:    #{nes.obj_fn.([nes.mu]).first}
+    ].gsub('      ', '')
   end
 
 end
