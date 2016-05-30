@@ -159,9 +159,13 @@ class Solver
   ### Execution hooks
 
   def pre_exec
-    if printevery && nruns
-      @exec_tracker = TimeTracker.new
-      exec_tracker.start_tracking
+    if printevery
+        puts "\n\n\n"
+        description.split("\n").each { |line| puts "\t#{line}" }
+      if nruns
+        @exec_tracker = TimeTracker.new
+        exec_tracker.start_tracking
+      end
     end
   end
 
@@ -184,19 +188,20 @@ class Solver
 
   def post_run
     if savefile
+      puts if printevery
       save_solution
       save_pred_obs
     end
     if printevery
       run_tracker.end_tracking
-      puts "\n    RUN: #{run_tracker.summary}"
+      puts "\n    RUN: #{run_tracker.summary}\n\n"
     end
   end
 
   def post_exec
     if printevery && nruns
       exec_tracker.end_tracking
-      puts "\n\nExecution complete\n#{exec_tracker.summary}"
+      puts "\nExecution complete\n#{exec_tracker.summary}\n\n"
     end
     ## drop to pry console at end of execution
     # require 'pry'; binding.pry
@@ -207,21 +212,19 @@ class Solver
   def run_header
     %Q[
 
-    #{description}
-
+    Run #{nrun}/#{nruns}
     #{run_tracker.start_string}
-    #{nes.class} training -- #{ngens} generations -- printing every #{printevery}
-
+    #{nes.class} training -- #{ngens||1} generations -- printing every #{printevery}
     ].gsub('  ', '')
   end
 
   def gen_summary
     %Q[
-      #{ngen}/#{ngens||1}
+      gen #{ngen}/#{ngens||1}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
         mu's fit:    #{fit.([nes.mu]).first}
-    ].gsub('      ', '')
+    ].gsub(/^\ {4}/, '')
   end
 
 end
