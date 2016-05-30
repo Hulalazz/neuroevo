@@ -7,8 +7,9 @@ require_relative 'time_tracker'
 class Solver
   extend Forwardable
 
-  attr_reader :id, :nes, :fit, :description, :savepath, :ext, :tt,
-    :serializer, :accessor, :printevery, :nruns, :nrun, :ngens, :ngen
+  attr_reader :id, :nes, :fit, :description, :savepath, :ext,
+    :serializer, :accessor, :printevery, :nruns, :nrun, :ngens, :ngen,
+    :run_tracker, :exec_tracker
 
   delegate [:net, :input_target_pairs] => :fit
 
@@ -80,7 +81,7 @@ class Solver
   # @note the {pre,post}_{gen,run} hooks can be overloaded to alter execution
   def run **config_overload
     with_params_overload config_overload do
-      pre_all
+      pre_exec
       1.upto(nruns || 1) do |nrun|
         @nrun = nrun
         pre_run
@@ -92,7 +93,7 @@ class Solver
           end
         post_run
       end
-      post_all
+      post_exec
     end
     ## anything happens: drop to pry console
     # rescue Exception => e
@@ -116,7 +117,7 @@ class Solver
     if verify # else will return `nil`
       success = load(where, false) == what
       if verbose
-        puts "File: < #{where} >" +
+        puts "Saving < #{where} >" +
           (success ? "\n  => Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
       success || raise("Hell! Can't save!")
@@ -157,13 +158,17 @@ class Solver
 
   ### Execution hooks
 
-  def pre_all
+  def pre_exec
+    if printevery && nruns
+      @exec_tracker = TimeTracker.new
+      exec_tracker.start_tracking
+    end
   end
 
   def pre_run
     if printevery
-      @tt = TimeTracker.new
-      tt.start_tracking
+      @run_tracker = TimeTracker.new
+      run_tracker.start_tracking
       puts run_header
     end
   end
@@ -183,12 +188,16 @@ class Solver
       save_pred_obs
     end
     if printevery
-      tt.end_tracking
-      puts "\n\t#{tt.summary}"
+      run_tracker.end_tracking
+      puts "\n    RUN: #{run_tracker.summary}"
     end
   end
 
-  def post_all
+  def post_exec
+    if printevery && nruns
+      exec_tracker.end_tracking
+      puts "\n\nExecution complete\n#{exec_tracker.summary}"
+    end
     ## drop to pry console at end of execution
     # require 'pry'; binding.pry
   end
@@ -200,7 +209,7 @@ class Solver
 
     #{description}
 
-    #{tt.start_string}
+    #{run_tracker.start_string}
     #{nes.class} training -- #{ngens} generations -- printing every #{printevery}
 
     ].gsub('  ', '')
