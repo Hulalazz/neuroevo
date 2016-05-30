@@ -18,6 +18,7 @@
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
 require 'ae/adapters/rspec'
+require_relative 'helpers/uses_temporary_folders'
 require_relative '../lib/neuroevo/nes'
 require_relative '../lib/neuroevo/nn'
 require_relative '../lib/neuroevo/nn_curve_fitting'
