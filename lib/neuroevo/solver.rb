@@ -49,9 +49,8 @@ class Solver
       fit, fit.class::OPT_TYPE, seed: seed
   end
 
-  def savefile
+  def savefile base_name="solver"
     return false unless savepath
-    base_name = "results"
     id_part = id && "_#{id}" || ""
     run_part = nruns && "_r#{nrun}" || ""
     savepath + (base_name + id_part + run_part + ext)
@@ -103,25 +102,44 @@ class Solver
 
   ### Save and load
 
-  # Save solver state to file
-  # @note currently saving only what I need, which is the NES dump
-  # @param verification [Bool] verify saved data
+  # Save-to-file abstraction
+  # @param what what to save
+  # @param where where to save it
+  # @param verify [Bool] verify saved data
+  # @param verbose [Bool] print confirmation if save successful
   # @return [true, false, nil] boolean confirmation if verification
   #   is true, nil otherwise
-  def save verification=true
-    # TODO: dump hash with all data?
-    filename = savefile
-    File.open(filename, accessor) do |f|
-      serializer.dump nes.dump, f
+  def save_something what, where, verify: true, verbose: true
+    File.open(where, accessor) do |f|
+      serializer.dump what, f
     end
-    if verification # else will return `nil`
-      success = load(false) == nes.dump
-      if printevery
-        puts "File: < #{filename} >"
+    if verify # else will return `nil`
+      success = load(where, false) == what
+      if verbose
+        puts "File: < #{where} >"
         puts (success ? "Save successful" : "\n\n\t\tSAVE FAILED!!\n\n")
       end
       success || raise("Hell! Can't save!")
     end
+  end
+
+  # Save solver state to file
+  # @note currently saving only what I need, which is the NES dump
+  # @param verify [Bool] verify saved data
+  # @return (see #save_something)
+  def save_solution verify=true
+    # TODO: dump hash with all data?
+    save_something nes.dump, savefile,
+      verify: verify, verbose: printevery
+  end
+
+  # Save prediction-observation pairs to file - use the distribution
+  #   mean as set of weights for prediction
+  # @param verify [Bool] verify saved data
+  # @return (see #save_something)
+  def save_pred_obs verify=true
+    save_something fit.pred_obs(nes.mu), savefile("pred_obs"),
+      verify: verify, verbose: printevery
   end
 
   # Load solver execution state
@@ -129,9 +147,9 @@ class Solver
   #   What I do is I re-load the experiment file, which includes the
   #   parameters hash, then I just load the search state from here.
   #   Check the specs for details.
-  def load print_confirmation=true
+  def load where, print_confirmation=true
     # They're arrays, you'll need to rebuild the NMatrices to resume.
-    serializer.load(File.read savefile).tap do |res|
+    serializer.load(File.read where).tap do |res|
       return puts "\n\n\t\tLOAD FAILED!!\n\n" unless res
       puts "Load successful" if print_confirmation
     end
@@ -160,7 +178,10 @@ class Solver
   end
 
   def post_run
-    save if savefile
+    if savefile
+      save_solution
+      save_pred_obs
+    end
   end
 
   def post_all
@@ -186,7 +207,7 @@ class Solver
       #{ngen}/#{ngens||1}
         mu (avg):    #{nes.mu.reduce(:+)/nes.ndims}
         conv (avg):  #{nes.convergence/nes.ndims}
-        mu's fit:    #{nes.obj_fn.([nes.mu]).first}
+        mu's fit:    #{fit.([nes.mu]).first}
     ].gsub('      ', '')
   end
 
