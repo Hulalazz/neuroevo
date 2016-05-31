@@ -41,7 +41,7 @@ describe Solver do
         run: {
           # ngens:       15,
           # nruns:       3,
-          printevery:  false
+          printevery:  false # 1
         }
       }
 
