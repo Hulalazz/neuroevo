@@ -9,26 +9,10 @@ Gem::Specification.new do |s|
   s.summary       = "Neuroevolution in Ruby."
   s.description   = %Q[\
     Born as working code I needed to import in a larger framework,
-    this little gem constitutes a basic but de facto usable neuroevolution
-    framework, extremely easy to start with.
+    this little gem constitutes a basic but de facto very usable
+    neuroevolution framework.
+
     You're welcome to come play with me :)
-
-    5 main blocks compose it:
-      - a linear algebra library, currently mostly NMatrix with few extensions
-      - a neural network implementation, for the generic function approximator
-      - a black-box optimizer, searching for the network's weights
-      - a complex fitness setup (for starters, any callable object will do)
-      - a solver / execution manager, easy to configure and extend
-    Choices are currently very limited (e.g. 2 networks and 2 optimizers), but
-    as long as I will need this gem at work, it is guaranteed to grow.
-    Collaborations are most welcome.
-
-    Check the spec for neuroevo to learn it bottom-up.
-    Check the spec for solver to learn it top-down.
-
-    If your business is backed by a Rails CMS, and linear regression is not
-    sufficient to predict trends in your data, have it a go with NNCurveFitting.
-    I am using it on my job, and am extremely satisfied by the results.
   ].gsub('  ', '')
 
   s.homepage      = 'https://github.com/giuse/neuroevo'
